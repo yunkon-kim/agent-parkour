@@ -1,0 +1,23 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+test/output/
+/tmp/
+
+# Environment and secrets
+.env
+.env.local
+
+# Token-Hop internal cache
+.token-hop/
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
