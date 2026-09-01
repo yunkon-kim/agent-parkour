@@ -22,15 +22,18 @@ No more manual copy-pasting and reformatting rules when you hit token limits, us
 ## ⚡ Why token-hop?
 
 1. 🎯 **Single Source of Truth (SSOT)**  
-   Manage all your guidelines in one `AGENTS.md` file and automatically compile them to Antigravity (`.agents/`), Cursor (`.cursor/rules/`), Copilot (`.github/`), and Claude (`CLAUDE.md`).
+   Manage all your guidelines in one `AGENTS.md` file and automatically synchronize them to Antigravity (`.agents/`), Cursor (`.cursor/rules/`), Copilot (`.github/`), and Claude (`CLAUDE.md`).
 
 2. 🚀 **Zero-Cost & Ultra-Fast Deterministic Core**  
-   100% rule-based AST parsing and code emission running locally in `<10ms` without requiring any external LLM API keys or incurring token costs.
+   100% rule-based AST parsing and code emission running locally in `<10ms` without requiring external LLM API keys or incurring token costs.
 
-3. 🧩 **Context Budgeting & JIT Skill Decomposition**  
-   Automatically detects context window constraints (e.g. Cursor 6,000 chars, Antigravity 12,000 chars) and decomposes oversized rules into on-demand JIT `SKILL.md` packages—**slashing context token consumption by 80%+**.
+3. 🛡️ **Automatic Timestamped Backups (`*.bak_YYYYMMDD_HHMMSS`)**  
+   Safely modifies rules with instant timestamped backups whenever existing files are overwritten, ensuring you never lose previous work.
 
-4. 🔄 **1-Second Project Migration (`thop convert`)**  
+4. 🧩 **Context Optimization & JIT Skill Decomposition**  
+   Automatically detects context limits (e.g. Cursor 6,000 chars, Antigravity 12,000 chars) and decomposes oversized rules into on-demand JIT `SKILL.md` packages—**slashing context token consumption by 80%+**.
+
+5. 🔄 **1-Second Multi-Agent Migration (`thop convert`)**  
    Instantly convert legacy GitHub Copilot setups (`.github/instructions`, `.github/prompts`) into modern Google Antigravity workflows and rules with a single command.
 
 ---
@@ -66,7 +69,7 @@ thop convert --from copilot --to all
 # 3) Convert to a specific target (auto-detects source in repo)
 thop convert --to cursor
 
-# 4) Audit token budget & character limits across all rules
+# 4) Audit token counts & context limits across all rules
 thop audit
 
 # 5) Initialize a new project with SSOT scaffolding (AGENTS.md)

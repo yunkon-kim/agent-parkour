@@ -22,15 +22,18 @@ AI 도구별 토큰 제한(Token Limit)이나 사용량 한도(Usage Cap)에 도
 ## ⚡ 왜 token-hop인가요? (Why token-hop?)
 
 1. 🎯 **단일 진실 원천 (Single Source of Truth, SSOT)**  
-   프로젝트 루트의 `AGENTS.md` 파일 하나로 Antigravity(`.agents/`), Cursor(`.cursor/rules/`), Copilot(`.github/`), Claude(`CLAUDE.md`) 설정을 중앙 집중 관리합니다.
+   프로젝트 루트의 `AGENTS.md` 파일 하나로 Antigravity(`.agents/`), Cursor(`.cursor/rules/`), Copilot(`.github/`), Claude(`CLAUDE.md`) 설정을 중앙 집중 동기화합니다.
 
 2. 🚀 **Zero-Cost & 초고속 결정론적(Deterministic) 코어**  
    복잡한 AST 파싱 및 코드 생성이 외부 LLM API 호출 없이 **로컬에서 10ms 이내(무과금)**로 즉시 실행됩니다.
 
-3. 🧩 **지능형 토큰 예산 & JIT Skill 자동 분할 (Context Budgeting)**  
+3. 🛡️ **자동 타임스탬프 백업 (`*.bak_YYYYMMDD_HHMMSS`)**  
+   기존 파일이 덮어쓰여질 때마다 이전 원본을 타임스탬프와 함께 자동 백업하여 작업 손실을 원천 차단합니다.
+
+4. 🧩 **지능형 토큰 최적화 & JIT Skill 자동 분할 (Context Optimization)**  
    Cursor 6,000자, Antigravity 12,000자 등 플랫폼별 용량 한계를 자동 감지하고, 대용량 지침은 온디맨드 JIT `SKILL.md`로 분해하여 **상시 토큰 소모를 80% 이상 절감**합니다.
 
-4. 🔄 **1초 만에 프로젝트 마이그레이션 (`thop convert`)**  
+5. 🔄 **1초 만에 크로스 에이전트 마이그레이션 (`thop convert`)**  
    GitHub Copilot(`.github/`)을 사용하던 기존 프로젝트를 단 한 줄의 명령어로 Google Antigravity(`.agents/`) 구조로 완벽 변환합니다.
 
 ---
@@ -66,7 +69,7 @@ thop convert --from copilot --to all
 # 3) 특정 AI 타겟으로 변환 (소스는 현재 레포에서 자동 감지)
 thop convert --to cursor
 
-# 4) 프로젝트 내 모든 규칙의 토큰 예산 및 문자수 정밀 감사
+# 4) 프로젝트 내 모든 규칙의 토큰 수 및 컨텍스트 한도 정밀 감사
 thop audit
 
 # 5) 신규 프로젝트에 SSOT 템플릿(AGENTS.md) 초기화

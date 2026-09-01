@@ -20,7 +20,7 @@
 +-------------------------------------------------------------------------------+
 |                       Multi-Agent Ecosystem Fragmentation                     |
 +-------------------------------------------------------------------------------+
-| [Google Antigravity] | .agents/rules/*.md, .agents/workflows/, .agent/skills/ |
+| [Google Antigravity] | .agents/rules/*.md, .agents/workflows/, .agents/skills/ |
 | [Cursor AI]          | .cursor/rules/*.mdc (globs, alwaysApply, description)  |
 | [Claude Code]        | ./CLAUDE.md, ~/.claude/CLAUDE.md, .claude/skills/      |
 | [GitHub Copilot]     | .github/copilot-instructions.md, .github/prompts/      |
@@ -95,7 +95,7 @@
 │Google Antigravity│             │    Cursor AI     │ │   Claude Code    │ │  GitHub Copilot  │
 │.agents/rules/*.md│             │.cursor/rules/*.md│ │./CLAUDE.md       │ │.github/copilot-  │
 │.agents/workflows/│             │(globs/always)    │ │.claude/skills/   │ │ instructions.md  │
-│.agent/skills/    │             └──────────────────┘ └──────────────────┘ │.github/prompts/  │
+│.agents/skills/   │             └──────────────────┘ └──────────────────┘ │.github/prompts/  │
 └──────────────────┘                                                       └──────────────────┘
 ```
 
@@ -108,7 +108,7 @@ AI 개발 지원 환경의 설정 요소를 **6대 핵심 엔티티**로 분류�
 | 엔티티 (Entity) | 개념적 역할 및 정의 | Google Antigravity | Cursor AI | Claude Code | GitHub Copilot |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Rule** | 프로젝트 전반 또는 파일별 코딩 제약 규칙 | `.agents/rules/*.md`<br>(Glob / Always On) | `.cursor/rules/*.mdc`<br>(`globs`, `alwaysApply`) | `./CLAUDE.md`<br>디렉터리 캐스케이딩 | `.github/instructions/*.md`<br>(`applyTo: glob`) |
-| **Skill** | 특정 작업 시 온디맨드(JIT) 동적 적재 패키지 | `.agent/skills/<name>/`<br>`SKILL.md` (JIT Load) | `.cursor/rules/<name>.mdc`<br>(Apply Intelligently) | `.claude/skills/<name>/`<br>`SKILL.md` | `.github/skills/<name>/`<br>`SKILL.md` |
+| **Skill** | 특정 작업 시 온디맨드(JIT) 동적 적재 패키지 | `.agents/skills/<name>/`<br>`SKILL.md` (JIT Load) | `.cursor/rules/<name>.mdc`<br>(Apply Intelligently) | `.claude/skills/<name>/`<br>`SKILL.md` | `.github/skills/<name>/`<br>`SKILL.md` |
 | **Workflow** | 다단계 절차 및 검증 루프를 갖춘 프롬프트 체인 | `.agents/workflows/*.md`<br>(`/workflow-name`) | `@rule` 참조 기반 프롬프트 | CLI Lifecycle Hooks &<br>순차 프롬프트 문서 | `.github/prompts/*.prompt.md`<br>(`/scaffold` 등) |
 | **Instruction** | 페르소나 및 시스템 차원 기본 글로벌 지침 | `~/.gemini/GEMINI.md`<br>+ 프로젝트 `AGENTS.md` | `.cursor/rules/base.mdc`<br>(`alwaysApply: true`) | `~/.claude/CLAUDE.md`<br>+ 루트 `CLAUDE.md` | `.github/copilot-instructions.md` |
 | **Prompt** | 재사용 가능한 개별 작업 템플릿 | 워크플로우 내 파라미터형<br>Prompt Artifact | 채팅 `@` 멘션 및 템플릿 | 단일 텍스트 프롬프트 파일 | `.github/prompts/*.prompt.md` |
@@ -130,7 +130,7 @@ AI 개발 지원 환경의 설정 요소를 **6대 핵심 엔티티**로 분류�
 │ .github/prompts/scaffold-api.prompt.md       │ ───►   │ .agents/workflows/scaffold-api.md            │
 │ (슬래시 커맨드형 API 스캐폴딩 템플릿)        │        │ (/scaffold-api 워크플로우 체이닝 변환)       │
 ├──────────────────────────────────────────────┤        ├──────────────────────────────────────────────┤
-│ .github/agents/cloud-architect.agent.md      │ ───►   │ .agent/skills/cloud-architect/SKILL.md       │
+│ .github/agents/cloud-architect.agent.md      │ ───►   │ .agents/skills/cloud-architect/SKILL.md      │
 │ (도구 권한 및 특화 모드 페르소나 지침)       │        │ (온디맨드 JIT Skill 적재로 토큰 80% 절감)    │
 └──────────────────────────────────────────────┘        └──────────────────────────────────────────────┘
 ```
@@ -213,14 +213,14 @@ payload:
   - Claude Code: 200줄 미만 권장
   - Antigravity: 파일당 12,000자 제한
 - **JIT 분할 및 스킬화**:
-  - AlwaysOn 지침이 예산을 초과하는 경우, 독립적인 작업 절차를 추출하여 Antigravity의 `.agent/skills/<name>/SKILL.md` 또는 Cursor의 온디맨드 `.mdc`로 분할 컴파일.
+  - AlwaysOn 지침이 예산을 초과하는 경우, 독립적인 작업 절차를 추출하여 Antigravity의 `.agents/skills/<name>/SKILL.md` 또는 Cursor의 온디맨드 `.mdc`로 분할 컴파일.
 
 ### 5.3 타겟 코드 생성기 (Target Emitter Engine)
 - **Antigravity Emitter**:
   - AlwaysOn $\rightarrow$ `.agents/rules/` (Frontmatter 없는 순수 Markdown 또는 Always On 메타데이터)
   - Glob $\rightarrow$ `.agents/rules/*.md` (YAML Frontmatter 내 `globs` 매핑)
   - Workflow $\rightarrow$ `.agents/workflows/*.md` (`/workflow-name` 슬래시 명령어 바인딩)
-  - Skill $\rightarrow$ `.agent/skills/<name>/SKILL.md` (JIT On-Demand 구조)
+  - Skill $\rightarrow$ `.agents/skills/<name>/SKILL.md` (JIT On-Demand 구조)
 - **Cursor Emitter**:
   - `.cursor/rules/<name>.mdc` (`description`, `globs`, `alwaysApply` YAML Frontmatter)
 - **Claude Code Emitter**:
@@ -480,7 +480,7 @@ token-hop/
 
 1. **Google Antigravity / Gemini Code Assist**:
    - [Google Cloud Gemini Code Assist Docs](https://cloud.google.com/gemini/docs/codeassist)
-   - Antigravity Agents, Rules (`.agents/rules/`), Workflows (`.agents/workflows/`), Skills (`.agent/skills/`)
+   - Antigravity Agents, Rules (`.agents/rules/`), Workflows (`.agents/workflows/`), Skills (`.agents/skills/`)
 2. **Cursor AI**:
    - [Cursor Rules Documentation](https://docs.cursor.com/context/rules-for-ai)
    - [Cursor Context & MDC Spec](https://docs.cursor.com/)

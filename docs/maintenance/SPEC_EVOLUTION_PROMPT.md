@@ -75,7 +75,7 @@ When updating or adding support, cross-reference the official specifications bel
 
 | 도구 (Tool) | 현재 표준 경로 | 감시해야 할 변경 포인트 |
 | :--- | :--- | :--- |
-| **Google Antigravity** | `.agents/rules/*.md`<br>`.agents/workflows/*.md`<br>`.agent/skills/*/SKILL.md` | • `.agent/` $\rightarrow$ `.agents/` 디렉터리 통합 추이<br>• JIT Skill 메타데이터 YAML 필드 확장<br>• Workflows 슬래시 커맨드 파라미터 규격 |
+| **Google Antigravity** | `.agents/rules/*.md`<br>`.agents/workflows/*.md`<br>`.agents/skills/*/SKILL.md` | • JIT Skill 메타데이터 YAML 필드 확장<br>• Workflows 슬래시 커맨드 파라미터 규격 |
 | **Cursor AI** | `.cursor/rules/*.mdc` | • `.mdc` 확장자의 순수 `.md` 변경 가능성<br>• `alwaysApply`, `globs`, `description` 외 신규 필드<br>• 단일 파일 6,000자 / 합계 12,000자 용량 정책 변동 |
 | **GitHub Copilot** | `.github/copilot-instructions.md`<br>`.github/instructions/*.md`<br>`.github/prompts/*.md` | • `applyTo` 외 다중 Glob 배열 지원 여부<br>• 커스텀 에이전트/모드 스키마 (`.github/agents/`) 표준화 |
 | **Claude Code** | `./CLAUDE.md`<br>`.claude/skills/*/SKILL.md` | • 디렉터리 캐스케이딩 탐색 우선순위<br>• 서브에이전트 정의 및 MCP 바인딩 구조 |

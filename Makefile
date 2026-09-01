@@ -18,7 +18,7 @@ test:
 	@go test -v ./...
 
 audit-example: build
-	@echo "📊 Running token budget audit on cm-beetle fixture..."
+	@echo "📊 Running token audit on cm-beetle fixture..."
 	@./$(BIN_DIR)/$(ALIAS_NAME) audit --input test/fixtures/cm-beetle/.github
 
 clean:

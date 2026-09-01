@@ -17,8 +17,8 @@ targets:
   - name: "gemini"
     output_file: "GEMINI.md"
 
-# 컨텍스트 예산 및 분할 정책
-context_budget:
+# 컨텍스트 한도 및 분할 정책 (Context Optimization)
+context_limits:
   max_tokens_per_rule: 400
   max_characters_per_rule: 1800
   auto_decompose: true
@@ -26,7 +26,7 @@ context_budget:
 # 선택적 생성형 AI 증강 설정 (Deterministic Core Fallback 지원)
 ai:
   enabled: false # CLI 실행 시 --ai 플래그 또는 .env 설정으로 활성화
-  provider: "gemini" # [gemini | anthropic | openai | ollama]
+  provider: "gemini" # [gemini | claude | openai | ollama]
   model: "gemini-2.5-pro"
   features:
     semantic_decompose: true    # 대용량 지침의 의미론적 JIT Skill 자동 분해

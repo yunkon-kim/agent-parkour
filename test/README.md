@@ -10,7 +10,7 @@
   - `instructions/` (6개 파일: `go`, `analyzer`, `markdown`, `tb-sync`, `transx`, `ui`)
   - `prompts/` (5개 파일: `api-guide`, `git-commit`, `release-staging`, `sync-tb`, `sync-tb-model`)
 - **`cm_beetle_conversion_test.go`**:
-  - `cm-beetle` Copilot 설정 파싱 $\rightarrow$ Google Antigravity(`.agents/rules/`, `.agents/workflows/`, `AGENTS.md`) 변환 $\rightarrow$ Cursor(`.cursor/rules/*.mdc`) 변환 $\rightarrow$ 토큰 예산 감사(Token Budget Audit) 자동 검증 테스트.
+  - `cm-beetle` Copilot 설정 파싱 $\rightarrow$ Google Antigravity(`.agents/rules/`, `.agents/workflows/`, `AGENTS.md`) 변환 $\rightarrow$ Cursor(`.cursor/rules/*.mdc`) 변환 $\rightarrow$ 토큰 수 및 컨텍스트 한도 감사(Token & Context Audit) 자동 검증 테스트.
 
 ## 테스트 실행 방법
 
