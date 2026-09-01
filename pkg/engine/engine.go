@@ -28,6 +28,11 @@ type Config struct {
 		PromptsDir      string `yaml:"prompts_dir,omitempty"`
 		EnableSkills    bool   `yaml:"enable_skills,omitempty"`
 	} `yaml:"targets"`
+	ContextLimits struct {
+		MaxTokensPerRule     int  `yaml:"max_tokens_per_rule"`
+		MaxCharactersPerRule int  `yaml:"max_characters_per_rule"`
+		AutoDecompose        bool `yaml:"auto_decompose"`
+	} `yaml:"context_limits"`
 	ContextBudget struct {
 		MaxTokensPerRule     int  `yaml:"max_tokens_per_rule"`
 		MaxCharactersPerRule int  `yaml:"max_characters_per_rule"`
