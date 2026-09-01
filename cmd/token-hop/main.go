@@ -148,17 +148,17 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 			// 5. Display Summary & Audit
 			exceededCount := 0
 			if lastAudit != nil {
-				fmt.Printf("\n📊 Context Budget Summary:\n")
+				fmt.Printf("\n📊 Context Window & Token Summary:\n")
 				fmt.Printf("   • Total Documents : %d\n", lastAudit.TotalDocuments)
 				fmt.Printf("   • Total Tokens    : ~%d tokens\n", lastAudit.TotalTokens)
 				fmt.Printf("   • Total Characters: %d chars\n", lastAudit.TotalCharacters)
 
 				for _, item := range lastAudit.Items {
-					if item.ExceedsBudget {
+					if item.ExceedsLimit {
 						exceededCount++
-						fmt.Printf("   ⚠️  [%s] %s (~%d tokens) exceeds recommended budget!\n", item.Type, item.ID, item.Tokens)
+						fmt.Printf("   ⚠️  [%s] %s (~%d tokens) is larger than recommended size (>400 tokens)\n", item.Type, item.ID, item.Tokens)
 						if item.Recommendation != "" {
-							fmt.Printf("      └─ Recommendation: %s\n", item.Recommendation)
+							fmt.Printf("      └─ Tip: %s\n", item.Recommendation)
 						}
 					}
 				}
@@ -185,7 +185,7 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 			}
 
 			if exceededCount > 0 && !autoDecompose {
-				fmt.Printf("   3. Optimize Context : %d rules exceed recommended budget. Consider running with '--decompose --ai' for JIT skills.\n", exceededCount)
+				fmt.Printf("   3. Optimize Context : %d oversized rule(s) exceed recommended limit (>400 tokens). Consider '--decompose --ai' for JIT skills.\n", exceededCount)
 				fmt.Println("   4. Commit Changes   : git add . && git commit -m \"docs: sync AI guidelines to " + strings.Join(targets, ", ") + "\"")
 			} else {
 				fmt.Println("   3. Commit Changes   : git add . && git commit -m \"docs: sync AI guidelines to " + strings.Join(targets, ", ") + "\"")
@@ -208,7 +208,7 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 	var maxTokens int
 	auditCmd := &cobra.Command{
 		Use:   "audit",
-		Short: "Audit token budget and character counts of instructions",
+		Short: "Audit token counts and character limits of instructions",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			eng := engine.NewEngine(nil)
 			from, input := eng.AutoDetectSource(auditDir)
@@ -218,7 +218,7 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 			}
 
 			report := budget.AuditDocuments(docs, maxTokens)
-			fmt.Printf("📊 [token-hop Audit Report for: %s (%s)]\n", input, strings.ToUpper(from))
+			fmt.Printf("📊 [token-hop Token Audit Report for: %s (%s)]\n", input, strings.ToUpper(from))
 			fmt.Printf("   Total Documents: %d | Total Tokens: ~%d | Total Characters: %d\n\n",
 				report.TotalDocuments, report.TotalTokens, report.TotalCharacters)
 
@@ -226,8 +226,8 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 			fmt.Printf("%s\n", strings.Repeat("-", 80))
 			for _, item := range report.Items {
 				status := "OK"
-				if item.ExceedsBudget {
-					status = "EXCEEDED"
+				if item.ExceedsLimit {
+					status = "OVERSIZED"
 				}
 				fmt.Printf("%-30s | %-12s | %-10d | ~%-9d | %s\n",
 					item.ID, item.Type, item.Characters, item.Tokens, status)

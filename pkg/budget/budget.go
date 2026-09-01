@@ -8,12 +8,12 @@ import (
 
 // AuditReport contains token and character metrics for documents
 type AuditItem struct {
-	ID            string        `json:"id"`
-	Type          ir.EntityType `json:"type"`
-	Characters    int           `json:"characters"`
-	Tokens        int           `json:"tokens"`
-	ExceedsBudget bool          `json:"exceeds_budget"`
-	Recommendation string       `json:"recommendation,omitempty"`
+	ID             string        `json:"id"`
+	Type           ir.EntityType `json:"type"`
+	Characters     int           `json:"characters"`
+	Tokens         int           `json:"tokens"`
+	ExceedsLimit   bool          `json:"exceeds_limit"`
+	Recommendation string        `json:"recommendation,omitempty"`
 }
 
 type AuditReport struct {
@@ -70,7 +70,7 @@ func AuditDocuments(docs []*ir.UADocument, maxTokensPerRule int) *AuditReport {
 			Type:           doc.Metadata.Type,
 			Characters:     chars,
 			Tokens:         tokens,
-			ExceedsBudget:  exceeds,
+			ExceedsLimit:   exceeds,
 			Recommendation: rec,
 		})
 	}

@@ -106,7 +106,7 @@ func TestCmBeetleCopilotToAntigravityConversion(t *testing.T) {
 		report.TotalDocuments, report.TotalTokens, report.TotalCharacters)
 
 	for _, item := range report.Items {
-		if item.ExceedsBudget {
+		if item.ExceedsLimit {
 			t.Logf("  ⚠️  Large item [%s] %s: ~%d tokens (Chars: %d) -> %s",
 				item.Type, item.ID, item.Tokens, item.Characters, item.Recommendation)
 		}
