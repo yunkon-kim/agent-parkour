@@ -57,16 +57,19 @@ alias thop=token-hop
 Run inside any of your projects with zero configuration:
 
 ```bash
-# 1) Zero-Config: Auto-detects source rules in current repo and generates corresponding targets
-thop convert
+# 1) Convert from GitHub Copilot to Google Antigravity (auto-maps all rules & prompts)
+thop convert --from copilot --to antigravity
 
-# 2) Convert to a specific target (auto-detects source)
-thop convert --to antigravity    # or: thop convert --to cursor
+# 2) Convert from GitHub Copilot to all supported targets (Antigravity, Cursor)
+thop convert --from copilot --to all
 
-# 3) Audit token budget & character limits across all rules
+# 3) Convert to a specific target (auto-detects source in repo)
+thop convert --to cursor
+
+# 4) Audit token budget & character limits across all rules
 thop audit
 
-# 4) Initialize a new project with SSOT scaffolding (AGENTS.md)
+# 5) Initialize a new project with SSOT scaffolding (AGENTS.md)
 thop init
 ```
 

@@ -35,44 +35,69 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 	}
 	rootCmd.AddCommand(versionCmd)
 
-	// 2. Convert Command (Smart Auto-Detection & Multi-Target)
+	// 2. Convert Command
 	var fromFormat, toFormat, inputPath, outputPath string
 	var useAI, autoDecompose bool
 	var aiProvider, aiModel string
 
 	convertCmd := &cobra.Command{
 		Use:   "convert",
-		Short: "Automatically detect and convert instructions across AI agent formats",
-		Example: `  # Zero-config: Automatically detects source in current repo and converts to targets
-  thop convert
+		Short: "Convert instructions across AI agent formats with automatic path mapping",
+		Example: `  # Convert from GitHub Copilot to Google Antigravity (auto-locates .github/ files)
+  thop convert --from copilot --to antigravity
 
-  # Convert to a specific target
-  thop convert --to antigravity
+  # Convert from GitHub Copilot to all supported targets (Antigravity, Cursor)
+  thop convert --from copilot --to all
+
+  # Convert to a specific target (auto-detects source in repo)
   thop convert --to cursor
 
-  # Explicit source and target
-  thop convert --from copilot --to antigravity --input .github --output .
-
-  # Optional AI-powered semantic decomposition
-  thop convert --decompose --ai --provider gemini`,
+  # Optional AI-powered semantic decomposition for oversized rules
+  thop convert --from copilot --to antigravity --decompose --ai --provider gemini`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			eng := engine.NewEngine(nil)
 
-			// 1. Auto-detect source if not explicitly provided
+			// Require --to flag to avoid unintended batch overwrite
+			if !cmd.Flags().Changed("to") || toFormat == "" || toFormat == "auto" {
+				fmt.Println("⚠️  Please specify a target format with --to <format> or --to all")
+				fmt.Println()
+				fmt.Println("👉 Common Examples:")
+				fmt.Println("   thop convert --from copilot --to antigravity")
+				fmt.Println("   thop convert --from copilot --to all")
+				fmt.Println("   thop convert --to cursor")
+				fmt.Println()
+				fmt.Println("💡 Run 'thop convert --help' for all available options.")
+				return nil
+			}
+
+			// 1. Auto-detect or resolve source path
 			checkPath := "."
 			if cmd.Flags().Changed("input") {
 				checkPath = inputPath
 			}
 			detectedFrom, detectedInput := eng.AutoDetectSource(checkPath)
+
 			if !cmd.Flags().Changed("from") || fromFormat == "auto" {
 				fromFormat = detectedFrom
 			}
 			if !cmd.Flags().Changed("input") {
-				inputPath = detectedInput
+				// If user explicitly specified --from, resolve standard folder if present
+				if fromFormat == "copilot" && checkPath == "." {
+					if _, err := os.Stat(".github"); err == nil {
+						inputPath = ".github"
+					} else {
+						inputPath = detectedInput
+					}
+				} else {
+					inputPath = detectedInput
+				}
 			}
 
-			// 2. Auto-detect targets if not explicitly provided
+			// 2. Resolve target list
 			targets := eng.AutoDetectTargets(fromFormat, toFormat)
+			if len(targets) == 0 {
+				return fmt.Errorf("no valid targets specified for %q", toFormat)
+			}
 
 			// 3. Setup AI Provider if requested or configured
 			aiCfg := ai.LoadConfig()
@@ -96,10 +121,11 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 				}
 			}
 
-			fmt.Printf("🔍 Source detected: [%s] at '%s'\n", strings.ToUpper(fromFormat), inputPath)
-			fmt.Printf("🎯 Target format(s): %s\n", strings.Join(targets, ", "))
+			fmt.Printf("🚀 [token-hop] Converting from '%s' to '%s'...\n", strings.ToUpper(fromFormat), strings.Join(targets, ", "))
+			fmt.Printf("   Source Path : %s\n", inputPath)
+			fmt.Printf("   Output Dir  : %s\n", outputPath)
 			if autoDecompose {
-				fmt.Printf("⚡ Mode: Semantic JIT Decomposition (>400 tokens -> JIT Skills)\n")
+				fmt.Printf("   AI Mode     : Semantic JIT Decomposition (>400 tokens -> JIT Skills)\n")
 			}
 			fmt.Println()
 
@@ -108,15 +134,15 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 			var lastAudit *budget.AuditReport
 
 			for _, target := range targets {
-				fmt.Printf("🔨 Converting to %s...\n", target)
+				fmt.Printf("🔨 Generating %s configuration...\n", strings.ToUpper(target))
 				writtenFiles, auditReport, err := eng.ConvertWithAI(context.Background(), fromFormat, target, inputPath, outputPath, autoDecompose, 400)
 				if err != nil {
-					fmt.Printf("   ❌ Error converting to %s: %v\n", target, err)
+					fmt.Printf("   ❌ Error generating %s: %v\n", target, err)
 					continue
 				}
 				lastAudit = auditReport
 				totalFiles = append(totalFiles, writtenFiles...)
-				fmt.Printf("   ✅ Generated %d files for %s\n", len(writtenFiles), target)
+				fmt.Printf("   ✅ Successfully generated %d files for %s\n", len(writtenFiles), target)
 			}
 
 			// 5. Display Summary & Audit
@@ -141,13 +167,13 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 				}
 			}
 
-			fmt.Printf("\n🎉 All operations completed! Total %d files generated.\n", len(totalFiles))
+			fmt.Printf("\n🎉 Conversion completed! Total %d files generated.\n", len(totalFiles))
 			return nil
 		},
 	}
-	convertCmd.Flags().StringVarP(&fromFormat, "from", "f", "auto", "Source agent format (auto, copilot, cursor, antigravity)")
-	convertCmd.Flags().StringVarP(&toFormat, "to", "t", "auto", "Target agent format(s) (auto, all, antigravity, cursor, copilot)")
-	convertCmd.Flags().StringVarP(&inputPath, "input", "i", ".", "Path to source directory or file")
+	convertCmd.Flags().StringVarP(&fromFormat, "from", "f", "auto", "Source agent format (copilot, cursor, antigravity)")
+	convertCmd.Flags().StringVarP(&toFormat, "to", "t", "", "Target agent format (antigravity, cursor, copilot, or 'all')")
+	convertCmd.Flags().StringVarP(&inputPath, "input", "i", ".", "Path to source directory or file (auto-detected if omitted)")
 	convertCmd.Flags().StringVarP(&outputPath, "output", "o", ".", "Output directory for target files")
 	convertCmd.Flags().BoolVar(&useAI, "ai", false, "Enable Generative AI augmentation")
 	convertCmd.Flags().BoolVarP(&autoDecompose, "decompose", "d", false, "Semantically decompose oversized rules into JIT skills")
