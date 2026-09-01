@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/yunkon-kim/token-hop/pkg/ai"
-	"github.com/yunkon-kim/token-hop/pkg/budget"
+	"github.com/yunkon-kim/token-hop/pkg/audit"
 	"github.com/yunkon-kim/token-hop/pkg/emitter"
 	"github.com/yunkon-kim/token-hop/pkg/ir"
 	"github.com/yunkon-kim/token-hop/pkg/parser"
@@ -180,12 +180,12 @@ func (e *Engine) EmitTarget(target string, docs []*ir.UADocument, outputDir stri
 }
 
 // Convert converts instructions directly from source to target
-func (e *Engine) Convert(from string, to string, inputPath string, outputDir string) ([]string, *budget.AuditReport, error) {
+func (e *Engine) Convert(from string, to string, inputPath string, outputDir string) ([]string, *audit.Report, error) {
 	return e.ConvertWithAI(context.Background(), from, to, inputPath, outputDir, false, 400)
 }
 
 // ConvertWithAI converts instructions with optional AI-powered semantic decomposition
-func (e *Engine) ConvertWithAI(ctx context.Context, from, to, inputPath, outputDir string, decompose bool, maxTokens int) ([]string, *budget.AuditReport, error) {
+func (e *Engine) ConvertWithAI(ctx context.Context, from, to, inputPath, outputDir string, decompose bool, maxTokens int) ([]string, *audit.Report, error) {
 	docs, err := e.ParseSource(from, inputPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse source (%s): %w", from, err)
@@ -199,7 +199,7 @@ func (e *Engine) ConvertWithAI(ctx context.Context, from, to, inputPath, outputD
 	if decompose && e.AIProvider != nil {
 		var decomposedList []*ir.UADocument
 		for _, doc := range docs {
-			tokenCount := budget.EstimateTokens(doc.Payload.MarkdownBody)
+			tokenCount := audit.EstimateTokens(doc.Payload.MarkdownBody)
 			if tokenCount > maxTokens {
 				res, err := e.AIProvider.DecomposeRule(ctx, doc.Metadata.Name, doc.Payload.MarkdownBody, maxTokens)
 				if err == nil && len(res.SubRules) > 0 {
@@ -234,6 +234,6 @@ func (e *Engine) ConvertWithAI(ctx context.Context, from, to, inputPath, outputD
 		return nil, nil, fmt.Errorf("failed to emit target (%s): %w", to, err)
 	}
 
-	auditReport := budget.AuditDocuments(finalDocs, maxTokens)
+	auditReport := audit.AuditDocuments(finalDocs, maxTokens)
 	return written, auditReport, nil
 }

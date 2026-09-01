@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yunkon-kim/token-hop/pkg/budget"
+	"github.com/yunkon-kim/token-hop/pkg/audit"
 	"github.com/yunkon-kim/token-hop/pkg/emitter"
 	"github.com/yunkon-kim/token-hop/pkg/parser"
 )
@@ -101,7 +101,7 @@ func TestCmBeetleCopilotToAntigravityConversion(t *testing.T) {
 	}
 
 	// 3. Context Budget Audit Test
-	report := budget.AuditDocuments(docs, 400)
+	report := audit.AuditDocuments(docs, 400)
 	t.Logf("Audit Report: Total Docs: %d, Total Tokens: ~%d, Total Chars: %d",
 		report.TotalDocuments, report.TotalTokens, report.TotalCharacters)
 

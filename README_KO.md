@@ -116,7 +116,7 @@ make build && make test
 | 엔티티 (Entity) | UA-IR 정규화 역할 | Google Antigravity | Cursor AI | GitHub Copilot | Claude Code |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Rule** | 파일 경로/정적 제약 | `.agents/rules/*.md` | `.cursor/rules/*.mdc` | `.github/instructions/*.md` | `./CLAUDE.md` |
-| **Skill** | 온디맨드 JIT 동적 절차 | `.agent/skills/<name>/` | `.cursor/rules/*.mdc` | `.github/skills/<name>/` | `.claude/skills/` |
+| **Skill** | 온디맨드 JIT 동적 절차 | `.agents/skills/<name>/` | `.cursor/rules/*.mdc` | `.github/skills/<name>/` | `.claude/skills/` |
 | **Workflow** | 다단계 절차 및 검증 루프 | `.agents/workflows/*.md` | `@rule` 체이닝 문서 | `.github/prompts/*.md` | CLI 프롬프트 체인 |
 | **Instruction** | 전역 시스템 기본 지침 | `AGENTS.md` | `.cursor/rules/base.mdc`| `.github/copilot-instructions.md` | `CLAUDE.md` |
 

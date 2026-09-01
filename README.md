@@ -116,7 +116,7 @@ make build && make test
 | Entity | UA-IR Normalized Role | Google Antigravity | Cursor AI | GitHub Copilot | Claude Code |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Rule** | File-scoped static constraints | `.agents/rules/*.md`<br>(Glob / Always On) | `.cursor/rules/*.mdc`<br>(`globs: []`, `alwaysApply`) | `.github/instructions/*.md`<br>(`applyTo: glob`) | `./CLAUDE.md`<br>Directory cascade |
-| **Skill** | On-demand JIT dynamic package | `.agent/skills/<name>/`<br>`SKILL.md` (JIT Load) | `.cursor/rules/*.mdc`<br>(Apply Intelligently) | `.github/skills/<name>/`<br>`SKILL.md` | `.claude/skills/<name>/`<br>`SKILL.md` |
+| **Skill** | On-demand JIT dynamic package | `.agents/skills/<name>/`<br>`SKILL.md` (JIT Load) | `.cursor/rules/*.mdc`<br>(Apply Intelligently) | `.github/skills/<name>/`<br>`SKILL.md` | `.claude/skills/<name>/`<br>`SKILL.md` |
 | **Workflow** | Multi-step chained prompt loop | `.agents/workflows/*.md`<br>(`/workflow-name`) | `@rule` chained prompt | `.github/prompts/*.prompt.md`<br>(`/scaffold`) | CLI lifecycle hooks |
 | **Instruction** | Global persona & system guidelines | `AGENTS.md` | `.cursor/rules/base.mdc`<br>(`alwaysApply: true`) | `.github/copilot-instructions.md` | `~/.claude/CLAUDE.md`<br>+ `./CLAUDE.md` |
 

@@ -460,7 +460,8 @@ token-hop/
 │   │   ├── cursor.go
 │   │   ├── claude.go
 │   │   └── copilot.go
-│   ├── budget/              # 컨텍스트 예산 및 JIT 분할기
+│   ├── audit/               # 토큰 산출, 컨텍스트 감사 및 JIT 분할기
+│   ├── ai/                  # 다중 LLM 프로바이더 통합 인터페이스
 │   ├── sync/                # 3-Way Diff 및 파일 감시 데몬
 │   └── eval/                # Promptfoo 연동 및 품질 평가 모듈
 ├── docs/

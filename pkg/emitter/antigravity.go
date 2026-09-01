@@ -25,7 +25,7 @@ func (e *AntigravityEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 
 	rulesDir := filepath.Join(e.BaseDir, ".agents", "rules")
 	workflowsDir := filepath.Join(e.BaseDir, ".agents", "workflows")
-	skillsDir := filepath.Join(e.BaseDir, ".agent", "skills")
+	skillsDir := filepath.Join(e.BaseDir, ".agents", "skills")
 
 	var rootInstructionBody string
 

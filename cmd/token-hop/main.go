@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/yunkon-kim/token-hop/pkg/ai"
-	"github.com/yunkon-kim/token-hop/pkg/budget"
+	"github.com/yunkon-kim/token-hop/pkg/audit"
 	"github.com/yunkon-kim/token-hop/pkg/engine"
 )
 
@@ -131,7 +131,7 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 
 			// 4. Perform conversion for each target format
 			var totalFiles []string
-			var lastAudit *budget.AuditReport
+			var lastAudit *audit.Report
 
 			for _, target := range targets {
 				fmt.Printf("🔨 Generating %s configuration...\n", strings.ToUpper(target))
@@ -217,7 +217,7 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 				return fmt.Errorf("failed to parse instructions in %s: %w", auditDir, err)
 			}
 
-			report := budget.AuditDocuments(docs, maxTokens)
+			report := audit.AuditDocuments(docs, maxTokens)
 			fmt.Printf("📊 [token-hop Token Audit Report for: %s (%s)]\n", input, strings.ToUpper(from))
 			fmt.Printf("   Total Documents: %d | Total Tokens: ~%d | Total Characters: %d\n\n",
 				report.TotalDocuments, report.TotalTokens, report.TotalCharacters)
