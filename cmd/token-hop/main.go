@@ -21,7 +21,7 @@ func main() {
 		Use:   "token-hop",
 		Short: "token-hop (thop): Cross-Agent Prompt Compiler & Context Synchronizer",
 		Long: `token-hop (thop) is a universal prompt compiler and context synchronizer
-that resolves configuration fragmentation across Google Antigravity, Cursor,
+that eliminates configuration fragmentation across Google Antigravity, Cursor,
 Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 	}
 
@@ -35,21 +35,46 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 	}
 	rootCmd.AddCommand(versionCmd)
 
-	// 2. Convert Command
+	// 2. Convert Command (Smart Auto-Detection & Multi-Target)
 	var fromFormat, toFormat, inputPath, outputPath string
 	var useAI, autoDecompose bool
 	var aiProvider, aiModel string
 
 	convertCmd := &cobra.Command{
 		Use:   "convert",
-		Short: "Directly convert instructions from one agent format to another",
-		Example: `  token-hop convert --from copilot --to antigravity --input .github --output .
-  thop convert --from copilot --to cursor --input .github --output .
-  thop convert --from copilot --to antigravity --decompose --ai --provider gemini`,
+		Short: "Automatically detect and convert instructions across AI agent formats",
+		Example: `  # Zero-config: Automatically detects source in current repo and converts to targets
+  thop convert
+
+  # Convert to a specific target
+  thop convert --to antigravity
+  thop convert --to cursor
+
+  # Explicit source and target
+  thop convert --from copilot --to antigravity --input .github --output .
+
+  # Optional AI-powered semantic decomposition
+  thop convert --decompose --ai --provider gemini`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			eng := engine.NewEngine(nil)
 
-			// Setup AI Provider if requested or configured
+			// 1. Auto-detect source if not explicitly provided
+			checkPath := "."
+			if cmd.Flags().Changed("input") {
+				checkPath = inputPath
+			}
+			detectedFrom, detectedInput := eng.AutoDetectSource(checkPath)
+			if !cmd.Flags().Changed("from") || fromFormat == "auto" {
+				fromFormat = detectedFrom
+			}
+			if !cmd.Flags().Changed("input") {
+				inputPath = detectedInput
+			}
+
+			// 2. Auto-detect targets if not explicitly provided
+			targets := eng.AutoDetectTargets(fromFormat, toFormat)
+
+			// 3. Setup AI Provider if requested or configured
 			aiCfg := ai.LoadConfig()
 			if cmd.Flags().Changed("ai") {
 				aiCfg.Enabled = useAI
@@ -64,57 +89,65 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 			if aiCfg.Enabled || useAI || autoDecompose {
 				provider, err := ai.NewProvider(aiCfg)
 				if err != nil {
-					fmt.Printf("⚠️  AI Provider initialization note: %v (falling back to deterministic core)\n", err)
+					fmt.Printf("⚠️  AI Provider note: %v (falling back to deterministic core)\n", err)
 				} else {
 					eng.SetAIProvider(provider)
 					fmt.Printf("🤖 [token-hop AI] Augmented with %s (%s)\n", strings.ToUpper(provider.Name()), provider.Model())
 				}
 			}
 
-			fmt.Printf("🚀 [token-hop] Converting from '%s' to '%s'...\n", fromFormat, toFormat)
-			fmt.Printf("   Source: %s\n", inputPath)
-			fmt.Printf("   Target: %s\n", outputPath)
+			fmt.Printf("🔍 Source detected: [%s] at '%s'\n", strings.ToUpper(fromFormat), inputPath)
+			fmt.Printf("🎯 Target format(s): %s\n", strings.Join(targets, ", "))
 			if autoDecompose {
-				fmt.Printf("   Mode  : Semantic JIT Decomposition (Tokens > 400 -> JIT Skills)\n")
+				fmt.Printf("⚡ Mode: Semantic JIT Decomposition (>400 tokens -> JIT Skills)\n")
 			}
 			fmt.Println()
 
-			writtenFiles, auditReport, err := eng.ConvertWithAI(context.Background(), fromFormat, toFormat, inputPath, outputPath, autoDecompose, 400)
-			if err != nil {
-				return fmt.Errorf("conversion failed: %w", err)
+			// 4. Perform conversion for each target format
+			var totalFiles []string
+			var lastAudit *budget.AuditReport
+
+			for _, target := range targets {
+				fmt.Printf("🔨 Converting to %s...\n", target)
+				writtenFiles, auditReport, err := eng.ConvertWithAI(context.Background(), fromFormat, target, inputPath, outputPath, autoDecompose, 400)
+				if err != nil {
+					fmt.Printf("   ❌ Error converting to %s: %v\n", target, err)
+					continue
+				}
+				lastAudit = auditReport
+				totalFiles = append(totalFiles, writtenFiles...)
+				fmt.Printf("   ✅ Generated %d files for %s\n", len(writtenFiles), target)
 			}
 
-			fmt.Printf("✅ Successfully compiled %d files to %s:\n", len(writtenFiles), toFormat)
-			for _, file := range writtenFiles {
-				fmt.Printf("   • %s\n", file)
-			}
+			// 5. Display Summary & Audit
+			if lastAudit != nil {
+				fmt.Printf("\n📊 Context Budget Summary:\n")
+				fmt.Printf("   • Total Documents : %d\n", lastAudit.TotalDocuments)
+				fmt.Printf("   • Total Tokens    : ~%d tokens\n", lastAudit.TotalTokens)
+				fmt.Printf("   • Total Characters: %d chars\n", lastAudit.TotalCharacters)
 
-			fmt.Printf("\n📊 Context Budget Summary:\n")
-			fmt.Printf("   • Total Documents : %d\n", auditReport.TotalDocuments)
-			fmt.Printf("   • Total Tokens    : ~%d tokens\n", auditReport.TotalTokens)
-			fmt.Printf("   • Total Characters: %d chars\n\n", auditReport.TotalCharacters)
-
-			exceededCount := 0
-			for _, item := range auditReport.Items {
-				if item.ExceedsBudget {
-					exceededCount++
-					fmt.Printf("   ⚠️  [%s] %s (~%d tokens) exceeds budget limit!\n", item.Type, item.ID, item.Tokens)
-					if item.Recommendation != "" {
-						fmt.Printf("      └─ Recommendation: %s\n", item.Recommendation)
+				exceededCount := 0
+				for _, item := range lastAudit.Items {
+					if item.ExceedsBudget {
+						exceededCount++
+						fmt.Printf("   ⚠️  [%s] %s (~%d tokens) exceeds recommended budget!\n", item.Type, item.ID, item.Tokens)
+						if item.Recommendation != "" {
+							fmt.Printf("      └─ Recommendation: %s\n", item.Recommendation)
+						}
 					}
+				}
+				if exceededCount == 0 {
+					fmt.Println("   ✨ All instructions are within safe context window limits!")
 				}
 			}
 
-			if exceededCount == 0 {
-				fmt.Println("   ✨ All instructions are within safe context window limits!")
-			}
-
+			fmt.Printf("\n🎉 All operations completed! Total %d files generated.\n", len(totalFiles))
 			return nil
 		},
 	}
-	convertCmd.Flags().StringVarP(&fromFormat, "from", "f", "copilot", "Source agent format (copilot, cursor, antigravity)")
-	convertCmd.Flags().StringVarP(&toFormat, "to", "t", "antigravity", "Target agent format (antigravity, cursor, copilot)")
-	convertCmd.Flags().StringVarP(&inputPath, "input", "i", ".github", "Path to source directory or file")
+	convertCmd.Flags().StringVarP(&fromFormat, "from", "f", "auto", "Source agent format (auto, copilot, cursor, antigravity)")
+	convertCmd.Flags().StringVarP(&toFormat, "to", "t", "auto", "Target agent format(s) (auto, all, antigravity, cursor, copilot)")
+	convertCmd.Flags().StringVarP(&inputPath, "input", "i", ".", "Path to source directory or file")
 	convertCmd.Flags().StringVarP(&outputPath, "output", "o", ".", "Output directory for target files")
 	convertCmd.Flags().BoolVar(&useAI, "ai", false, "Enable Generative AI augmentation")
 	convertCmd.Flags().BoolVarP(&autoDecompose, "decompose", "d", false, "Semantically decompose oversized rules into JIT skills")
@@ -122,49 +155,7 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 	convertCmd.Flags().StringVar(&aiModel, "model", "", "AI model override")
 	rootCmd.AddCommand(convertCmd)
 
-	// 3. Compile Command
-	var targetList string
-	var configPath string
-	compileCmd := &cobra.Command{
-		Use:   "compile",
-		Short: "Compile instructions from SSOT (AGENTS.md) to multiple targets",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := engine.LoadConfig(configPath)
-			if err != nil {
-				return err
-			}
-
-			eng := engine.NewEngine(cfg)
-			docs, err := eng.ParseSource("antigravity", ".")
-			if err != nil || len(docs) == 0 {
-				docs, err = eng.ParseSource("copilot", ".github")
-			}
-			if err != nil || len(docs) == 0 {
-				return fmt.Errorf("no source instructions found to compile")
-			}
-
-			targets := strings.Split(targetList, ",")
-			for _, t := range targets {
-				t = strings.TrimSpace(t)
-				if t == "" {
-					continue
-				}
-				fmt.Printf("🔨 Compiling target: %s...\n", t)
-				written, err := eng.EmitTarget(t, docs, ".")
-				if err != nil {
-					fmt.Printf("   ❌ Error emitting %s: %v\n", t, err)
-				} else {
-					fmt.Printf("   ✅ Emitted %d files for %s\n", len(written), t)
-				}
-			}
-			return nil
-		},
-	}
-	compileCmd.Flags().StringVarP(&targetList, "target", "t", "antigravity,cursor", "Comma-separated target list")
-	compileCmd.Flags().StringVarP(&configPath, "config", "c", "token-hop.yaml", "Path to token-hop.yaml")
-	rootCmd.AddCommand(compileCmd)
-
-	// 4. Audit Command
+	// 3. Audit Command
 	var auditDir string
 	var maxTokens int
 	auditCmd := &cobra.Command{
@@ -172,16 +163,14 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 		Short: "Audit token budget and character counts of instructions",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			eng := engine.NewEngine(nil)
-			docs, err := eng.ParseSource("copilot", auditDir)
-			if err != nil {
-				docs, err = eng.ParseSource("antigravity", auditDir)
-			}
+			from, input := eng.AutoDetectSource(auditDir)
+			docs, err := eng.ParseSource(from, input)
 			if err != nil {
 				return fmt.Errorf("failed to parse instructions in %s: %w", auditDir, err)
 			}
 
 			report := budget.AuditDocuments(docs, maxTokens)
-			fmt.Printf("📊 [token-hop Audit Report for: %s]\n", auditDir)
+			fmt.Printf("📊 [token-hop Audit Report for: %s (%s)]\n", input, strings.ToUpper(from))
 			fmt.Printf("   Total Documents: %d | Total Tokens: ~%d | Total Characters: %d\n\n",
 				report.TotalDocuments, report.TotalTokens, report.TotalCharacters)
 
@@ -198,11 +187,11 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 			return nil
 		},
 	}
-	auditCmd.Flags().StringVarP(&auditDir, "input", "i", ".github", "Directory to audit")
+	auditCmd.Flags().StringVarP(&auditDir, "input", "i", ".", "Directory to audit (auto-detects if '.')")
 	auditCmd.Flags().IntVarP(&maxTokens, "max-tokens", "m", 400, "Maximum allowed tokens per instruction")
 	rootCmd.AddCommand(auditCmd)
 
-	// 5. Init Command
+	// 4. Init Command
 	initCmd := &cobra.Command{
 		Use:   "init",
 		Short: "Initialize token-hop SSOT scaffolding and token-hop.yaml in current project",

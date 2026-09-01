@@ -68,6 +68,83 @@ func LoadConfig(configPath string) (*Config, error) {
 	return &cfg, nil
 }
 
+// AutoDetectSource inspects a directory or repo root and returns the detected format and path
+func (e *Engine) AutoDetectSource(root string) (string, string) {
+	// 1. Direct Copilot directory check (.github/ or current folder containing copilot files)
+	if _, err := os.Stat(filepath.Join(root, "copilot-instructions.md")); err == nil {
+		return "copilot", root
+	}
+	if _, err := os.Stat(filepath.Join(root, "instructions")); err == nil {
+		return "copilot", root
+	}
+	if _, err := os.Stat(filepath.Join(root, "prompts")); err == nil {
+		return "copilot", root
+	}
+
+	// 2. Child .github directory check
+	copilotDir := filepath.Join(root, ".github")
+	if _, err := os.Stat(filepath.Join(copilotDir, "copilot-instructions.md")); err == nil {
+		return "copilot", copilotDir
+	}
+	if _, err := os.Stat(filepath.Join(copilotDir, "instructions")); err == nil {
+		return "copilot", copilotDir
+	}
+
+	// 3. Check for Antigravity (AGENTS.md or .agents/)
+	if _, err := os.Stat(filepath.Join(root, "AGENTS.md")); err == nil {
+		return "antigravity", root
+	}
+	if _, err := os.Stat(filepath.Join(root, ".agents")); err == nil {
+		return "antigravity", root
+	}
+
+	// 4. Check for Cursor (.cursor/rules/)
+	cursorRules := filepath.Join(root, ".cursor", "rules")
+	if _, err := os.Stat(cursorRules); err == nil {
+		return "cursor", cursorRules
+	}
+	if _, err := os.Stat(filepath.Join(root, "rules")); err == nil {
+		return "cursor", filepath.Join(root, "rules")
+	}
+
+	// Fallback to copilot if .github exists, else antigravity
+	if _, err := os.Stat(filepath.Join(root, ".github")); err == nil {
+		return "copilot", filepath.Join(root, ".github")
+	}
+
+	return "antigravity", root
+}
+
+// AutoDetectTargets determines target formats based on source format
+func (e *Engine) AutoDetectTargets(sourceFormat, targetArg string) []string {
+	targetArg = strings.TrimSpace(targetArg)
+	if targetArg == "all" {
+		return []string{"antigravity", "cursor", "copilot"}
+	}
+	if targetArg != "" && targetArg != "auto" {
+		var list []string
+		for _, item := range strings.Split(targetArg, ",") {
+			item = strings.TrimSpace(item)
+			if item != "" {
+				list = append(list, item)
+			}
+		}
+		return list
+	}
+
+	// Default: convert to other platforms
+	switch strings.ToLower(sourceFormat) {
+	case "copilot", "github":
+		return []string{"antigravity", "cursor"}
+	case "antigravity", "gemini":
+		return []string{"cursor", "copilot"}
+	case "cursor":
+		return []string{"antigravity", "copilot"}
+	default:
+		return []string{"antigravity", "cursor"}
+	}
+}
+
 // ParseSource parses instructions from a given source format and path
 func (e *Engine) ParseSource(from string, sourcePath string) ([]*ir.UADocument, error) {
 	from = strings.ToLower(from)
@@ -79,20 +156,8 @@ func (e *Engine) ParseSource(from string, sourcePath string) ([]*ir.UADocument, 
 	case "cursor":
 		return parser.ParseCursorDirectory(sourcePath)
 	default:
-		// Auto-detect based on directory contents
-		if _, err := os.Stat(filepath.Join(sourcePath, "copilot-instructions.md")); err == nil {
-			return parser.ParseCopilotDirectory(sourcePath)
-		}
-		if _, err := os.Stat(filepath.Join(sourcePath, "instructions")); err == nil {
-			return parser.ParseCopilotDirectory(sourcePath)
-		}
-		if _, err := os.Stat(filepath.Join(sourcePath, ".agents")); err == nil {
-			return parser.ParseAntigravityDirectory(sourcePath)
-		}
-		if _, err := os.Stat(filepath.Join(sourcePath, ".cursor")); err == nil {
-			return parser.ParseCursorDirectory(filepath.Join(sourcePath, ".cursor", "rules"))
-		}
-		return nil, fmt.Errorf("unknown source format or unable to auto-detect: %s", from)
+		detectedFrom, detectedPath := e.AutoDetectSource(sourcePath)
+		return e.ParseSource(detectedFrom, detectedPath)
 	}
 }
 
@@ -130,7 +195,6 @@ func (e *Engine) ConvertWithAI(ctx context.Context, from, to, inputPath, outputD
 		return nil, nil, fmt.Errorf("no valid instruction documents found in %s", inputPath)
 	}
 
-	// Semantic decomposition if enabled and AI provider is active
 	finalDocs := docs
 	if decompose && e.AIProvider != nil {
 		var decomposedList []*ir.UADocument

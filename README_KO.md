@@ -57,16 +57,16 @@ alias thop=token-hop
 어떤 프로젝트 디렉터리에서든 추가 설정 없이 즉시 실행:
 
 ```bash
-# 1) 기존 GitHub Copilot(.github/) 설정을 Google Antigravity(.agents/)로 1초 만에 변환
-thop convert --from copilot --to antigravity
+# 1) 제로 설정(Zero-Config): 현재 프로젝트의 AI 규칙을 자동 감지하여 대응되는 모든 타겟으로 자동 변환
+thop convert
 
-# 2) 프로젝트 내 모든 규칙의 토큰 예산 및 문자수 정밀 감사
+# 2) 특정 AI 타겟으로 변환 (소스는 자동 감지)
+thop convert --to antigravity    # 또는 thop convert --to cursor
+
+# 3) 프로젝트 내 모든 규칙의 토큰 예산 및 문자수 정밀 감사
 thop audit
 
-# 3) SSOT(AGENTS.md)로부터 모든 AI 타겟(Antigravity, Cursor, Copilot)으로 동시 컴파일
-thop compile
-
-# 4) 신규 프로젝트에 SSOT 템플릿 초기화
+# 4) 신규 프로젝트에 SSOT 템플릿(AGENTS.md) 초기화
 thop init
 ```
 
