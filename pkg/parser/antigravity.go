@@ -1,0 +1,182 @@
+package parser
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/yunkon-kim/token-hop/pkg/ir"
+)
+
+// AntigravityRuleFrontmatter represents YAML frontmatter in .agents/rules/*.md
+type AntigravityRuleFrontmatter struct {
+	Globs       []string `yaml:"globs,omitempty"`
+	Description string   `yaml:"description,omitempty"`
+	AlwaysApply bool     `yaml:"alwaysApply,omitempty"`
+}
+
+// AntigravitySkillFrontmatter represents YAML frontmatter in .agent/skills/<name>/SKILL.md
+type AntigravitySkillFrontmatter struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+}
+
+// ParseAntigravityDirectory parses Antigravity directory structure
+func ParseAntigravityDirectory(baseDir string) ([]*ir.UADocument, error) {
+	var docs []*ir.UADocument
+
+	// 1. Check AGENTS.md in baseDir
+	agentsMdPath := filepath.Join(baseDir, "AGENTS.md")
+	if data, err := os.ReadFile(agentsMdPath); err == nil {
+		doc := ir.NewDocument("instruction-agents-ssot", ir.TypeInstruction, "Master Project SSOT")
+		doc.Metadata.Description = "Single Source of Truth instructions"
+		doc.Activation.Mode = ir.ModeAlwaysOn
+		doc.Payload.MarkdownBody = string(data)
+		doc.Payload.RawSource = agentsMdPath
+		docs = append(docs, doc)
+	}
+
+	// 2. Parse .agents/rules/
+	rulesDir := filepath.Join(baseDir, ".agents", "rules")
+	if entries, err := os.ReadDir(rulesDir); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+				continue
+			}
+			filePath := filepath.Join(rulesDir, entry.Name())
+			data, err := os.ReadFile(filePath)
+			if err != nil {
+				continue
+			}
+
+			id := strings.TrimSuffix(entry.Name(), ".md")
+			var fm AntigravityRuleFrontmatter
+			body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
+
+			doc := ir.NewDocument("rule-"+id, ir.TypeRule, formatTitle(id))
+			doc.Metadata.Description = fm.Description
+			if len(fm.Globs) > 0 {
+				doc.Activation.Mode = ir.ModeGlob
+				doc.Activation.Globs = fm.Globs
+			} else {
+				doc.Activation.Mode = ir.ModeAlwaysOn
+			}
+			doc.Payload.MarkdownBody = body
+			doc.Payload.RawSource = filePath
+			docs = append(docs, doc)
+		}
+	}
+
+	// 3. Parse .agents/workflows/
+	workflowsDir := filepath.Join(baseDir, ".agents", "workflows")
+	if entries, err := os.ReadDir(workflowsDir); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+				continue
+			}
+			filePath := filepath.Join(workflowsDir, entry.Name())
+			data, err := os.ReadFile(filePath)
+			if err != nil {
+				continue
+			}
+
+			id := strings.TrimSuffix(entry.Name(), ".md")
+			fmData, body, _ := SplitFrontmatter(string(data))
+
+			doc := ir.NewDocument("workflow-"+id, ir.TypeWorkflow, formatTitle(id))
+			if desc, ok := fmData["description"].(string); ok {
+				doc.Metadata.Description = desc
+			}
+			doc.Activation.Mode = ir.ModeOnDemand
+			doc.Activation.SlashCommand = id
+			doc.Payload.MarkdownBody = body
+			doc.Payload.RawSource = filePath
+			docs = append(docs, doc)
+		}
+	}
+
+	// 4. Parse .agent/skills/ or .agents/skills/
+	skillsDirs := []string{
+		filepath.Join(baseDir, ".agent", "skills"),
+		filepath.Join(baseDir, ".agents", "skills"),
+	}
+	for _, sDir := range skillsDirs {
+		if entries, err := os.ReadDir(sDir); err == nil {
+			for _, entry := range entries {
+				if !entry.IsDir() {
+					continue
+				}
+				skillFile := filepath.Join(sDir, entry.Name(), "SKILL.md")
+				data, err := os.ReadFile(skillFile)
+				if err != nil {
+					continue
+				}
+
+				var fm AntigravitySkillFrontmatter
+				body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
+
+				name := fm.Name
+				if name == "" {
+					name = entry.Name()
+				}
+
+				doc := ir.NewDocument("skill-"+entry.Name(), ir.TypeSkill, name)
+				doc.Metadata.Description = fm.Description
+				doc.Activation.Mode = ir.ModeOnDemand
+				doc.Payload.MarkdownBody = body
+				doc.Payload.RawSource = skillFile
+				docs = append(docs, doc)
+			}
+		}
+	}
+
+	return docs, nil
+}
+
+// ParseCursorDirectory parses .cursor/rules/*.mdc
+func ParseCursorDirectory(cursorRulesDir string) ([]*ir.UADocument, error) {
+	var docs []*ir.UADocument
+
+	entries, err := os.ReadDir(cursorRulesDir)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() || (!strings.HasSuffix(entry.Name(), ".mdc") && !strings.HasSuffix(entry.Name(), ".md")) {
+			continue
+		}
+		filePath := filepath.Join(cursorRulesDir, entry.Name())
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			continue
+		}
+
+		id := strings.TrimSuffix(entry.Name(), ".mdc")
+		id = strings.TrimSuffix(id, ".md")
+
+		var fm struct {
+			Description string   `yaml:"description"`
+			Globs       []string `yaml:"globs"`
+			AlwaysApply bool     `yaml:"alwaysApply"`
+		}
+		body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
+
+		doc := ir.NewDocument("rule-"+id, ir.TypeRule, formatTitle(id))
+		doc.Metadata.Description = fm.Description
+		if fm.AlwaysApply {
+			doc.Activation.Mode = ir.ModeAlwaysOn
+		} else if len(fm.Globs) > 0 {
+			doc.Activation.Mode = ir.ModeGlob
+			doc.Activation.Globs = fm.Globs
+		} else {
+			doc.Activation.Mode = ir.ModeModelDecision
+		}
+
+		doc.Payload.MarkdownBody = body
+		doc.Payload.RawSource = filePath
+		docs = append(docs, doc)
+	}
+
+	return docs, nil
+}
