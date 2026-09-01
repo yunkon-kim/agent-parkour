@@ -9,7 +9,7 @@
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](file:///home/ubuntu/dev/yunkon-kim/token-hop/go.mod)
 [![Architecture: UA-IR](https://img.shields.io/badge/Architecture-UA--IR%20v1.0-brightgreen)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/design/token-hop-design-plan.md)
 
-> ⚡ **Zero-Cost & Local-First**: `token-hop` runs 100% locally with **zero API keys and zero cost** by default. Generative AI (Claude/Gemini/OpenAI/Ollama) is purely optional for smart rule decomposition.
+> ⚡ **Zero-Cost & Local-First**: `token-hop` runs 100% locally with **zero API keys and zero cost** by default. Generative AI is purely an optional, experimental feature for advanced rule decomposition.
 
 ---
 
@@ -33,9 +33,6 @@ No more manual copy-pasting and reformatting rules when you hit token limits, us
 4. 🔄 **1-Second Project Migration (`thop convert`)**  
    Instantly convert legacy GitHub Copilot setups (`.github/instructions`, `.github/prompts`) into modern Google Antigravity workflows and rules with a single command.
 
-5. 🤖 **Selective Generative AI Augmentation (Hybrid Architecture)**  
-   Optionally connect Claude, Gemini, OpenAI, or **local offline LLMs (Ollama)** for intelligent semantic rule decomposition, smart trigger generation, and 3-way merge conflict resolution.
-
 ---
 
 ## ⌨️ Quick Start
@@ -55,25 +52,48 @@ curl -fsSL https://raw.githubusercontent.com/yunkon-kim/token-hop/main/install.s
 alias thop=token-hop
 ```
 
-### 2. Instant Usage
+### 2. Instant Usage (Deterministic Core)
 
-Run inside any of your projects:
+Run inside any of your projects with zero configuration:
 
 ```bash
 # 1) Convert existing GitHub Copilot (.github/) setup to Google Antigravity (.agents/)
 thop convert --from copilot --to antigravity
 
-# 2) Semantically decompose oversized rules into JIT Skills using AI (e.g. Gemini / Claude / Ollama)
-thop convert --from copilot --to antigravity --decompose --ai --provider gemini
-
-# 3) Audit token budget & character limits across all rules
+# 2) Audit token budget & character limits across all rules
 thop audit
 
-# 4) Compile SSOT (AGENTS.md) to all AI targets (Antigravity, Cursor, Copilot)
+# 3) Compile SSOT (AGENTS.md) to all AI targets (Antigravity, Cursor, Copilot)
 thop compile
 
-# 5) Initialize a new project with SSOT scaffolding
+# 4) Initialize a new project with SSOT scaffolding
 thop init
+```
+
+---
+
+## 🧪 Optional & Experimental: Generative AI Augmentation
+
+> ⚠️ **Note**: Generative AI integration is **strictly optional and experimental**. `token-hop`'s core compiler runs 100% deterministically without requiring any API keys.
+
+If you wish to enable advanced semantic rule decomposition (analyzing complex rules and splitting them into modular JIT skills), you can selectively enable Generative AI:
+
+### 1. Configure `.env` (Optional)
+```bash
+cp .env.example .env
+# Edit .env to set your preferred provider:
+# TOKEN_HOP_AI_ENABLED=true
+# TOKEN_HOP_AI_PROVIDER=gemini  # [gemini | claude | openai | ollama]
+# GEMINI_API_KEY=your_key_here
+```
+
+### 2. Run Semantic Decomposition
+```bash
+# Decompose oversized rules using Google Gemini
+thop convert --from copilot --to antigravity --decompose --ai --provider gemini
+
+# Or using local offline LLM via Ollama (Zero API cost)
+thop convert --from copilot --to antigravity --decompose --ai --provider ollama
 ```
 
 ---
@@ -103,6 +123,7 @@ make build && make test
 
 - [Table of Contents (docs/README.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/README.md)
 - [Architecture & Design Plan Specification (docs/design/token-hop-design-plan.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/design/token-hop-design-plan.md)
+- [Maintenance & Spec Evolution Prompt (docs/maintenance/SPEC_EVOLUTION_PROMPT.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/maintenance/SPEC_EVOLUTION_PROMPT.md)
 - [Test Suite & Real-world Fixtures Guide (test/README.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/test/README.md)
 
 ---

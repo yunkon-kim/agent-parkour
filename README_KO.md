@@ -9,7 +9,7 @@
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](file:///home/ubuntu/dev/yunkon-kim/token-hop/go.mod)
 [![Architecture: UA-IR](https://img.shields.io/badge/Architecture-UA--IR%20v1.0-brightgreen)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/design/token-hop-design-plan.md)
 
-> ⚡ **완전 무료 & 로컬 동작**: `token-hop`은 기본적으로 **API 키 없이 100% 로컬에서 무료**로 동작합니다. 생성형 AI(Claude/Gemini/OpenAI/Ollama)는 지능형 규칙 분할이 필요할 때만 선택적으로 연동됩니다.
+> ⚡ **완전 무료 & 로컬 동작**: `token-hop`은 기본적으로 **API 키 없이 100% 로컬에서 무료**로 동작합니다. 생성형 AI 연동은 고급 규칙 분할을 위한 순수 **선택적·실험적(Optional & Experimental)** 기능입니다.
 
 ---
 
@@ -33,9 +33,6 @@ AI 도구별 토큰 제한(Token Limit)이나 사용량 한도(Usage Cap)에 도
 4. 🔄 **1초 만에 프로젝트 마이그레이션 (`thop convert`)**  
    GitHub Copilot(`.github/`)을 사용하던 기존 프로젝트를 단 한 줄의 명령어로 Google Antigravity(`.agents/`) 구조로 완벽 변환합니다.
 
-5. 🤖 **선택적 생성형 AI 증강 지원 (Hybrid AI Augmentation)**  
-   필요에 따라 Claude, Gemini, OpenAI 및 **로컬 무과금 LLM (Ollama)**을 선택적으로 연동하여 의미론적 규칙 분할, 시맨틱 트리거 자동 생성, 3-Way 병합 충돌 해결을 수행할 수 있습니다.
-
 ---
 
 ## ⌨️ 빠른 시작 (Quick Start)
@@ -55,25 +52,48 @@ curl -fsSL https://raw.githubusercontent.com/yunkon-kim/token-hop/main/install.s
 alias thop=token-hop
 ```
 
-### 2. 바로 사용하기 (Instant Usage)
+### 2. 바로 사용하기 (결정론적 코어 모드)
 
-어떤 프로젝트 디렉터리에서든 즉시 실행:
+어떤 프로젝트 디렉터리에서든 추가 설정 없이 즉시 실행:
 
 ```bash
 # 1) 기존 GitHub Copilot(.github/) 설정을 Google Antigravity(.agents/)로 1초 만에 변환
 thop convert --from copilot --to antigravity
 
-# 2) 생성형 AI(Gemini / Claude / Ollama 등)를 연동하여 대용량 지침을 JIT Skill로 지능형 분할
-thop convert --from copilot --to antigravity --decompose --ai --provider gemini
-
-# 3) 프로젝트 내 모든 규칙의 토큰 예산 및 문자수 정밀 감사
+# 2) 프로젝트 내 모든 규칙의 토큰 예산 및 문자수 정밀 감사
 thop audit
 
-# 4) SSOT(AGENTS.md)로부터 모든 AI 타겟(Antigravity, Cursor, Copilot)으로 동시 컴파일
+# 3) SSOT(AGENTS.md)로부터 모든 AI 타겟(Antigravity, Cursor, Copilot)으로 동시 컴파일
 thop compile
 
-# 5) 신규 프로젝트에 SSOT 템플릿 초기화
+# 4) 신규 프로젝트에 SSOT 템플릿 초기화
 thop init
+```
+
+---
+
+## 🧪 선택적 & 실험적 기능: 생성형 AI 증강 (Optional & Experimental)
+
+> ⚠️ **안내**: 생성형 AI 기능은 **완전한 선택 사항(Optional)이자 실험적(Experimental) 기능**입니다. `token-hop`의 핵심 컴파일러는 어떠한 API 키도 요구하지 않고 100% 로컬에서 동작합니다.
+
+대용량 복합 지침을 문맥 단위로 분석하여 모듈형 JIT Skill로 자동 분해하고자 할 때만 선택적으로 생성형 AI를 연동할 수 있습니다:
+
+### 1. `.env` 설정 (선택 사항)
+```bash
+cp .env.example .env
+# .env 파일에서 원하는 프로바이더 및 API 키 설정:
+# TOKEN_HOP_AI_ENABLED=true
+# TOKEN_HOP_AI_PROVIDER=gemini  # [gemini | claude | openai | ollama]
+# GEMINI_API_KEY=your_key_here
+```
+
+### 2. 지능형 규칙 분할 실행
+```bash
+# Google Gemini를 연동하여 대용량 지침을 JIT Skill로 지능형 분할
+thop convert --from copilot --to antigravity --decompose --ai --provider gemini
+
+# 또는 로컬 무료 LLM(Ollama)을 연동하여 API 비용 0원으로 분할
+thop convert --from copilot --to antigravity --decompose --ai --provider ollama
 ```
 
 ---
@@ -103,6 +123,7 @@ make build && make test
 
 - [전체 문서 목차 (docs/README.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/README.md)
 - [시스템 아키텍처 및 구현 계획 명세서 (docs/design/token-hop-design-plan.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/design/token-hop-design-plan.md)
+- [스펙 최신화 및 프롬프트 가이드 (docs/maintenance/SPEC_EVOLUTION_PROMPT.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/maintenance/SPEC_EVOLUTION_PROMPT.md)
 - [테스트 스위트 및 픽스처 안내 (test/README.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/test/README.md)
 
 ---
