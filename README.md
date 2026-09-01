@@ -63,13 +63,16 @@ Run inside any of your projects:
 # 1) Convert existing GitHub Copilot (.github/) setup to Google Antigravity (.agents/)
 thop convert --from copilot --to antigravity
 
-# 2) Audit token budget & character limits across all rules
+# 2) Semantically decompose oversized rules into JIT Skills using AI (e.g. Gemini / Claude / Ollama)
+thop convert --from copilot --to antigravity --decompose --ai --provider gemini
+
+# 3) Audit token budget & character limits across all rules
 thop audit
 
-# 3) Compile SSOT (AGENTS.md) to all AI targets (Antigravity, Cursor, Copilot)
+# 4) Compile SSOT (AGENTS.md) to all AI targets (Antigravity, Cursor, Copilot)
 thop compile
 
-# 4) Initialize a new project with SSOT scaffolding
+# 5) Initialize a new project with SSOT scaffolding
 thop init
 ```
 

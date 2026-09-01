@@ -63,13 +63,16 @@ alias thop=token-hop
 # 1) 기존 GitHub Copilot(.github/) 설정을 Google Antigravity(.agents/)로 1초 만에 변환
 thop convert --from copilot --to antigravity
 
-# 2) 프로젝트 내 모든 규칙의 토큰 예산 및 문자수 정밀 감사
+# 2) 생성형 AI(Gemini / Claude / Ollama 등)를 연동하여 대용량 지침을 JIT Skill로 지능형 분할
+thop convert --from copilot --to antigravity --decompose --ai --provider gemini
+
+# 3) 프로젝트 내 모든 규칙의 토큰 예산 및 문자수 정밀 감사
 thop audit
 
-# 3) SSOT(AGENTS.md)로부터 모든 AI 타겟(Antigravity, Cursor, Copilot)으로 동시 컴파일
+# 4) SSOT(AGENTS.md)로부터 모든 AI 타겟(Antigravity, Cursor, Copilot)으로 동시 컴파일
 thop compile
 
-# 4) 신규 프로젝트에 SSOT 템플릿 초기화
+# 5) 신규 프로젝트에 SSOT 템플릿 초기화
 thop init
 ```
 

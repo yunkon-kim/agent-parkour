@@ -1,11 +1,13 @@
 package engine
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/yunkon-kim/token-hop/pkg/ai"
 	"github.com/yunkon-kim/token-hop/pkg/budget"
 	"github.com/yunkon-kim/token-hop/pkg/emitter"
 	"github.com/yunkon-kim/token-hop/pkg/ir"
@@ -18,13 +20,13 @@ type Config struct {
 	Version string `yaml:"version"`
 	SSOT    string `yaml:"ssot"`
 	Targets []struct {
-		Name           string `yaml:"name"`
-		OutputDir      string `yaml:"output_dir,omitempty"`
-		OutputFile     string `yaml:"output_file,omitempty"`
-		SkillsDir      string `yaml:"skills_dir,omitempty"`
+		Name            string `yaml:"name"`
+		OutputDir       string `yaml:"output_dir,omitempty"`
+		OutputFile      string `yaml:"output_file,omitempty"`
+		SkillsDir       string `yaml:"skills_dir,omitempty"`
 		InstructionsDir string `yaml:"instructions_dir,omitempty"`
-		PromptsDir     string `yaml:"prompts_dir,omitempty"`
-		EnableSkills   bool   `yaml:"enable_skills,omitempty"`
+		PromptsDir      string `yaml:"prompts_dir,omitempty"`
+		EnableSkills    bool   `yaml:"enable_skills,omitempty"`
 	} `yaml:"targets"`
 	ContextBudget struct {
 		MaxTokensPerRule     int  `yaml:"max_tokens_per_rule"`
@@ -33,14 +35,20 @@ type Config struct {
 	} `yaml:"context_budget"`
 }
 
-// Engine coordinates parsing and emitting
+// Engine coordinates parsing, AI augmentation, and emitting
 type Engine struct {
-	Config *Config
+	Config     *Config
+	AIProvider ai.AIProvider
 }
 
 // NewEngine creates a new Engine
 func NewEngine(cfg *Config) *Engine {
 	return &Engine{Config: cfg}
+}
+
+// SetAIProvider binds an active AI provider (Gemini, Claude, OpenAI, Ollama, Mock)
+func (e *Engine) SetAIProvider(provider ai.AIProvider) {
+	e.AIProvider = provider
 }
 
 // LoadConfig loads token-hop.yaml or returns defaults
@@ -108,6 +116,11 @@ func (e *Engine) EmitTarget(target string, docs []*ir.UADocument, outputDir stri
 
 // Convert converts instructions directly from source to target
 func (e *Engine) Convert(from string, to string, inputPath string, outputDir string) ([]string, *budget.AuditReport, error) {
+	return e.ConvertWithAI(context.Background(), from, to, inputPath, outputDir, false, 400)
+}
+
+// ConvertWithAI converts instructions with optional AI-powered semantic decomposition
+func (e *Engine) ConvertWithAI(ctx context.Context, from, to, inputPath, outputDir string, decompose bool, maxTokens int) ([]string, *budget.AuditReport, error) {
 	docs, err := e.ParseSource(from, inputPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to parse source (%s): %w", from, err)
@@ -117,11 +130,46 @@ func (e *Engine) Convert(from string, to string, inputPath string, outputDir str
 		return nil, nil, fmt.Errorf("no valid instruction documents found in %s", inputPath)
 	}
 
-	written, err := e.EmitTarget(to, docs, outputDir)
+	// Semantic decomposition if enabled and AI provider is active
+	finalDocs := docs
+	if decompose && e.AIProvider != nil {
+		var decomposedList []*ir.UADocument
+		for _, doc := range docs {
+			tokenCount := budget.EstimateTokens(doc.Payload.MarkdownBody)
+			if tokenCount > maxTokens {
+				res, err := e.AIProvider.DecomposeRule(ctx, doc.Metadata.Name, doc.Payload.MarkdownBody, maxTokens)
+				if err == nil && len(res.SubRules) > 0 {
+					for _, sub := range res.SubRules {
+						entityType := ir.TypeRule
+						if sub.IsSkill {
+							entityType = ir.TypeSkill
+						}
+						mode := ir.ModeGlob
+						if len(sub.Globs) == 0 {
+							mode = ir.ModeAlwaysOn
+						}
+
+						subDoc := ir.NewDocument(sub.ID, entityType, sub.Title)
+						subDoc.Metadata.Description = sub.Description
+						subDoc.Activation.Mode = mode
+						subDoc.Activation.Globs = sub.Globs
+						subDoc.Payload.MarkdownBody = sub.Content
+
+						decomposedList = append(decomposedList, subDoc)
+					}
+					continue
+				}
+			}
+			decomposedList = append(decomposedList, doc)
+		}
+		finalDocs = decomposedList
+	}
+
+	written, err := e.EmitTarget(to, finalDocs, outputDir)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to emit target (%s): %w", to, err)
 	}
 
-	auditReport := budget.AuditDocuments(docs, 400)
+	auditReport := budget.AuditDocuments(finalDocs, maxTokens)
 	return written, auditReport, nil
 }

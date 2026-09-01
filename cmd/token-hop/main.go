@@ -1,17 +1,19 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/yunkon-kim/token-hop/pkg/ai"
 	"github.com/yunkon-kim/token-hop/pkg/budget"
 	"github.com/yunkon-kim/token-hop/pkg/engine"
 )
 
 var (
-	version = "v0.1.0"
+	version = "v0.2.0"
 )
 
 func main() {
@@ -35,19 +37,49 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 
 	// 2. Convert Command
 	var fromFormat, toFormat, inputPath, outputPath string
+	var useAI, autoDecompose bool
+	var aiProvider, aiModel string
+
 	convertCmd := &cobra.Command{
 		Use:   "convert",
 		Short: "Directly convert instructions from one agent format to another",
 		Example: `  token-hop convert --from copilot --to antigravity --input .github --output .
-  thop convert --from copilot --to cursor --input .github --output .`,
+  thop convert --from copilot --to cursor --input .github --output .
+  thop convert --from copilot --to antigravity --decompose --ai --provider gemini`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			eng := engine.NewEngine(nil)
 
+			// Setup AI Provider if requested or configured
+			aiCfg := ai.LoadConfig()
+			if cmd.Flags().Changed("ai") {
+				aiCfg.Enabled = useAI
+			}
+			if cmd.Flags().Changed("provider") {
+				aiCfg.Provider = aiProvider
+			}
+			if cmd.Flags().Changed("model") {
+				aiCfg.Model = aiModel
+			}
+
+			if aiCfg.Enabled || useAI || autoDecompose {
+				provider, err := ai.NewProvider(aiCfg)
+				if err != nil {
+					fmt.Printf("⚠️  AI Provider initialization note: %v (falling back to deterministic core)\n", err)
+				} else {
+					eng.SetAIProvider(provider)
+					fmt.Printf("🤖 [token-hop AI] Augmented with %s (%s)\n", strings.ToUpper(provider.Name()), provider.Model())
+				}
+			}
+
 			fmt.Printf("🚀 [token-hop] Converting from '%s' to '%s'...\n", fromFormat, toFormat)
 			fmt.Printf("   Source: %s\n", inputPath)
-			fmt.Printf("   Target: %s\n\n", outputPath)
+			fmt.Printf("   Target: %s\n", outputPath)
+			if autoDecompose {
+				fmt.Printf("   Mode  : Semantic JIT Decomposition (Tokens > 400 -> JIT Skills)\n")
+			}
+			fmt.Println()
 
-			writtenFiles, auditReport, err := eng.Convert(fromFormat, toFormat, inputPath, outputPath)
+			writtenFiles, auditReport, err := eng.ConvertWithAI(context.Background(), fromFormat, toFormat, inputPath, outputPath, autoDecompose, 400)
 			if err != nil {
 				return fmt.Errorf("conversion failed: %w", err)
 			}
@@ -84,6 +116,10 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 	convertCmd.Flags().StringVarP(&toFormat, "to", "t", "antigravity", "Target agent format (antigravity, cursor, copilot)")
 	convertCmd.Flags().StringVarP(&inputPath, "input", "i", ".github", "Path to source directory or file")
 	convertCmd.Flags().StringVarP(&outputPath, "output", "o", ".", "Output directory for target files")
+	convertCmd.Flags().BoolVar(&useAI, "ai", false, "Enable Generative AI augmentation")
+	convertCmd.Flags().BoolVarP(&autoDecompose, "decompose", "d", false, "Semantically decompose oversized rules into JIT skills")
+	convertCmd.Flags().StringVar(&aiProvider, "provider", "gemini", "AI provider (gemini, claude, openai, ollama, mock)")
+	convertCmd.Flags().StringVar(&aiModel, "model", "", "AI model override")
 	rootCmd.AddCommand(convertCmd)
 
 	// 3. Compile Command

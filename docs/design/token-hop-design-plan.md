@@ -343,6 +343,25 @@ OLLAMA_MODEL=deepseek-r1:14b
 ### 7.4 무중단 자동 폴백 (Graceful Fallback)
 API 키가 설정되지 않았거나, 할당량 초과(Quota Exceeded) 또는 오프라인 환경인 경우 시스템은 오류로 중단되지 않고 **자동으로 결정론적(Deterministic) 정적 컴파일 모드로 전환**됩니다.
 
+### 7.5 다중 생성형 AI 통합 표준 인터페이스 (`pkg/ai/`)
+다양한 LLM 프로바이더를 추상화한 `AIProvider` 표준 인터페이스를 제공하여, 엔진 코드는 변경 없이 프로바이더 구현체만 교체됩니다.
+
+```go
+type AIProvider interface {
+    Name() string
+    Model() string
+    DecomposeRule(ctx context.Context, title, content string, maxTokens int) (*DecomposeResult, error)
+    GenerateDescription(ctx context.Context, content string) (string, error)
+}
+```
+
+- **구현 프로바이더**:
+  - `GeminiProvider`: Google Gemini REST API v1beta (Gemini 2.5 Pro / Flash)
+  - `ClaudeProvider`: Anthropic Claude Messages API (Claude 3.5 / 3.7 Sonnet)
+  - `OpenAIProvider`: OpenAI Chat Completions API (GPT-4o / o3-mini)
+  - `OllamaProvider`: Local Ollama REST API (DeepSeek-R1 / Qwen 2.5 / Llama 3)
+  - `MockProvider`: 오프라인 단위 테스트 및 CI/CD 결정론적 목업 엔진
+
 ---
 
 ## 8. CLI 도구 (`token-hop`) 설계
