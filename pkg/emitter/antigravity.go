@@ -2,7 +2,6 @@ package emitter
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -20,23 +19,13 @@ func NewAntigravityEmitter(baseDir string) *AntigravityEmitter {
 	return &AntigravityEmitter{BaseDir: baseDir}
 }
 
-// Emit writes documents to the Antigravity directory structure
+// Emit writes documents to the Antigravity directory structure with automatic backup
 func (e *AntigravityEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 	var writtenFiles []string
 
 	rulesDir := filepath.Join(e.BaseDir, ".agents", "rules")
 	workflowsDir := filepath.Join(e.BaseDir, ".agents", "workflows")
 	skillsDir := filepath.Join(e.BaseDir, ".agent", "skills")
-
-	if err := os.MkdirAll(rulesDir, 0755); err != nil {
-		return nil, err
-	}
-	if err := os.MkdirAll(workflowsDir, 0755); err != nil {
-		return nil, err
-	}
-	if err := os.MkdirAll(skillsDir, 0755); err != nil {
-		return nil, err
-	}
 
 	var rootInstructionBody string
 
@@ -49,8 +38,12 @@ func (e *AntigravityEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 			fileName := SanitizeFileName(doc.Metadata.ID) + ".md"
 			filePath := filepath.Join(rulesDir, fileName)
 			content := RenderMarkdownWithTitle(doc.Metadata.Name, doc.Payload.MarkdownBody)
-			if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+			backup, err := SafeWriteFile(filePath, []byte(content))
+			if err != nil {
 				return writtenFiles, err
+			}
+			if backup != "" {
+				fmt.Printf("      📦 Backed up existing file -> %s\n", backup)
 			}
 			writtenFiles = append(writtenFiles, filePath)
 
@@ -78,8 +71,12 @@ func (e *AntigravityEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 			}
 			out.WriteString(RenderMarkdownWithTitle(doc.Metadata.Name, doc.Payload.MarkdownBody))
 
-			if err := os.WriteFile(filePath, []byte(out.String()), 0644); err != nil {
+			backup, err := SafeWriteFile(filePath, []byte(out.String()))
+			if err != nil {
 				return writtenFiles, err
+			}
+			if backup != "" {
+				fmt.Printf("      📦 Backed up existing file -> %s\n", backup)
 			}
 			writtenFiles = append(writtenFiles, filePath)
 
@@ -108,8 +105,12 @@ func (e *AntigravityEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 			}
 			out.WriteString(RenderMarkdownWithTitle("Workflow: "+doc.Metadata.Name, doc.Payload.MarkdownBody))
 
-			if err := os.WriteFile(filePath, []byte(out.String()), 0644); err != nil {
+			backup, err := SafeWriteFile(filePath, []byte(out.String()))
+			if err != nil {
 				return writtenFiles, err
+			}
+			if backup != "" {
+				fmt.Printf("      📦 Backed up existing file -> %s\n", backup)
 			}
 			writtenFiles = append(writtenFiles, filePath)
 
@@ -119,10 +120,6 @@ func (e *AntigravityEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 			skillName = strings.TrimPrefix(skillName, "agent-")
 
 			targetSkillDir := filepath.Join(skillsDir, skillName)
-			if err := os.MkdirAll(targetSkillDir, 0755); err != nil {
-				return writtenFiles, err
-			}
-
 			skillFilePath := filepath.Join(targetSkillDir, "SKILL.md")
 
 			fm := map[string]interface{}{
@@ -140,8 +137,12 @@ func (e *AntigravityEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 			out.WriteString("---\n\n")
 			out.WriteString(RenderMarkdownWithTitle(doc.Metadata.Name, doc.Payload.MarkdownBody))
 
-			if err := os.WriteFile(skillFilePath, []byte(out.String()), 0644); err != nil {
+			backup, err := SafeWriteFile(skillFilePath, []byte(out.String()))
+			if err != nil {
 				return writtenFiles, err
+			}
+			if backup != "" {
+				fmt.Printf("      📦 Backed up existing file -> %s\n", backup)
 			}
 			writtenFiles = append(writtenFiles, skillFilePath)
 		}
@@ -161,11 +162,14 @@ func (e *AntigravityEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 	}
 	agentsContent.WriteString("\n*Compiled and synchronized by [token-hop](https://github.com/yunkon-kim/token-hop)*\n")
 
-	if err := os.WriteFile(agentsMdPath, []byte(agentsContent.String()), 0644); err != nil {
+	backup, err := SafeWriteFile(agentsMdPath, []byte(agentsContent.String()))
+	if err != nil {
 		return writtenFiles, err
+	}
+	if backup != "" {
+		fmt.Printf("      📦 Backed up existing file -> %s\n", backup)
 	}
 	writtenFiles = append(writtenFiles, agentsMdPath)
 
 	return writtenFiles, nil
 }
-

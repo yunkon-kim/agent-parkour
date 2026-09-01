@@ -1,7 +1,7 @@
 package emitter
 
 import (
-	"os"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -19,14 +19,11 @@ func NewCursorEmitter(baseDir string) *CursorEmitter {
 	return &CursorEmitter{BaseDir: baseDir}
 }
 
-// Emit writes documents to the Cursor rules directory
+// Emit writes documents to the Cursor rules directory with automatic backup
 func (e *CursorEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 	var writtenFiles []string
 
 	rulesDir := filepath.Join(e.BaseDir, ".cursor", "rules")
-	if err := os.MkdirAll(rulesDir, 0755); err != nil {
-		return nil, err
-	}
 
 	for _, doc := range docs {
 		fileName := SanitizeFileName(doc.Metadata.ID) + ".mdc"
@@ -61,13 +58,15 @@ func (e *CursorEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 		out.WriteString("---\n\n")
 		out.WriteString(RenderMarkdownWithTitle(doc.Metadata.Name, doc.Payload.MarkdownBody))
 
-		if err := os.WriteFile(filePath, []byte(out.String()), 0644); err != nil {
+		backup, err := SafeWriteFile(filePath, []byte(out.String()))
+		if err != nil {
 			return writtenFiles, err
+		}
+		if backup != "" {
+			fmt.Printf("      📦 Backed up existing file -> %s\n", backup)
 		}
 		writtenFiles = append(writtenFiles, filePath)
 	}
 
 	return writtenFiles, nil
 }
-
-

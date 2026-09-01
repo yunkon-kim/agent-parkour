@@ -14,8 +14,10 @@ test/output/
 .env
 .env.local
 
-# Token-Hop internal cache
+# Token-Hop internal cache & backups
 .token-hop/
+*.bak_*
+*.bak
 
 # IDE / OS
 .DS_Store

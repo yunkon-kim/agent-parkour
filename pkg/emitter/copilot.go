@@ -2,7 +2,6 @@ package emitter
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -20,7 +19,7 @@ func NewCopilotEmitter(baseDir string) *CopilotEmitter {
 	return &CopilotEmitter{BaseDir: baseDir}
 }
 
-// Emit writes documents to the .github directory structure
+// Emit writes documents to the .github directory structure with automatic backup
 func (e *CopilotEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 	var writtenFiles []string
 
@@ -28,20 +27,17 @@ func (e *CopilotEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 	instDir := filepath.Join(githubDir, "instructions")
 	promptsDir := filepath.Join(githubDir, "prompts")
 
-	if err := os.MkdirAll(instDir, 0755); err != nil {
-		return nil, err
-	}
-	if err := os.MkdirAll(promptsDir, 0755); err != nil {
-		return nil, err
-	}
-
 	for _, doc := range docs {
 		switch doc.Metadata.Type {
 		case ir.TypeInstruction:
 			filePath := filepath.Join(githubDir, "copilot-instructions.md")
 			content := fmt.Sprintf("# %s\n\n%s\n", doc.Metadata.Name, doc.Payload.MarkdownBody)
-			if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
+			backup, err := SafeWriteFile(filePath, []byte(content))
+			if err != nil {
 				return writtenFiles, err
+			}
+			if backup != "" {
+				fmt.Printf("      📦 Backed up existing file -> %s\n", backup)
 			}
 			writtenFiles = append(writtenFiles, filePath)
 
@@ -67,8 +63,12 @@ func (e *CopilotEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 			out.WriteString("---\n\n")
 			out.WriteString(RenderMarkdownWithTitle(doc.Metadata.Name, doc.Payload.MarkdownBody))
 
-			if err := os.WriteFile(filePath, []byte(out.String()), 0644); err != nil {
+			backup, err := SafeWriteFile(filePath, []byte(out.String()))
+			if err != nil {
 				return writtenFiles, err
+			}
+			if backup != "" {
+				fmt.Printf("      📦 Backed up existing file -> %s\n", backup)
 			}
 			writtenFiles = append(writtenFiles, filePath)
 
@@ -91,8 +91,12 @@ func (e *CopilotEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 			out.WriteString(doc.Payload.MarkdownBody)
 			out.WriteString("\n")
 
-			if err := os.WriteFile(filePath, []byte(out.String()), 0644); err != nil {
+			backup, err := SafeWriteFile(filePath, []byte(out.String()))
+			if err != nil {
 				return writtenFiles, err
+			}
+			if backup != "" {
+				fmt.Printf("      📦 Backed up existing file -> %s\n", backup)
 			}
 			writtenFiles = append(writtenFiles, filePath)
 		}
