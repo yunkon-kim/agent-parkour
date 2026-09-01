@@ -146,13 +146,13 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 			}
 
 			// 5. Display Summary & Audit
+			exceededCount := 0
 			if lastAudit != nil {
 				fmt.Printf("\n📊 Context Budget Summary:\n")
 				fmt.Printf("   • Total Documents : %d\n", lastAudit.TotalDocuments)
 				fmt.Printf("   • Total Tokens    : ~%d tokens\n", lastAudit.TotalTokens)
 				fmt.Printf("   • Total Characters: %d chars\n", lastAudit.TotalCharacters)
 
-				exceededCount := 0
 				for _, item := range lastAudit.Items {
 					if item.ExceedsBudget {
 						exceededCount++
@@ -167,7 +167,29 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 				}
 			}
 
-			fmt.Printf("\n🎉 Conversion completed! Total %d files generated.\n", len(totalFiles))
+			fmt.Printf("\n🎉 Conversion completed! Total %d files generated.\n\n", len(totalFiles))
+
+			// 6. Action Items & Next Steps for the User
+			fmt.Println("👉 Next Steps & Action Items:")
+			fmt.Println("   1. Review changes   : Run 'git status' or 'git diff' to review the generated files.")
+			
+			for _, target := range targets {
+				switch target {
+				case "antigravity":
+					fmt.Println("   2. Google Antigravity: Open in Antigravity. Rules (.agents/rules/) and slash workflows (.agents/workflows/) are ready.")
+				case "cursor":
+					fmt.Println("   2. Cursor AI        : Open in Cursor. Rules in .cursor/rules/*.mdc are active.")
+				case "copilot":
+					fmt.Println("   2. GitHub Copilot   : Open in VSCode. Instructions in .github/ are active.")
+				}
+			}
+
+			if exceededCount > 0 && !autoDecompose {
+				fmt.Printf("   3. Optimize Context : %d rules exceed recommended budget. Consider running with '--decompose --ai' for JIT skills.\n", exceededCount)
+				fmt.Println("   4. Commit Changes   : git add . && git commit -m \"docs: sync AI guidelines to " + strings.Join(targets, ", ") + "\"")
+			} else {
+				fmt.Println("   3. Commit Changes   : git add . && git commit -m \"docs: sync AI guidelines to " + strings.Join(targets, ", ") + "\"")
+			}
 			return nil
 		},
 	}
