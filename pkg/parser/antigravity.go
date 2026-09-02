@@ -21,8 +21,74 @@ type AntigravitySkillFrontmatter struct {
 	Description string `yaml:"description"`
 }
 
-// ParseAntigravityDirectory parses Antigravity directory structure
+// ParseAntigravityDirectory parses Antigravity directory structure or a single file
 func ParseAntigravityDirectory(baseDir string) ([]*ir.UADocument, error) {
+	fi, err := os.Stat(baseDir)
+	if err == nil && !fi.IsDir() {
+		data, err := os.ReadFile(baseDir)
+		if err != nil {
+			return nil, err
+		}
+		baseName := filepath.Base(baseDir)
+		lower := strings.ToLower(baseDir)
+
+		if strings.HasSuffix(lower, "agents.md") || strings.HasSuffix(lower, "gemini.md") {
+			doc := ir.NewDocument("instruction-agents-ssot", ir.TypeInstruction, "Master Project SSOT")
+			doc.Metadata.Description = "Single Source of Truth instructions"
+			doc.Activation.Mode = ir.ModeAlwaysOn
+			doc.Payload.MarkdownBody = string(data)
+			doc.Payload.RawSource = baseDir
+			return []*ir.UADocument{doc}, nil
+		}
+
+		if strings.Contains(lower, "workflows") {
+			id := strings.TrimSuffix(baseName, ".md")
+			var fm struct {
+				Description string `yaml:"description"`
+			}
+			body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
+			doc := ir.NewDocument("workflow-"+id, ir.TypeWorkflow, formatTitle(id))
+			doc.Metadata.Description = fm.Description
+			doc.Activation.Mode = ir.ModeOnDemand
+			doc.Payload.MarkdownBody = body
+			doc.Payload.RawSource = baseDir
+			return []*ir.UADocument{doc}, nil
+		}
+
+		if strings.Contains(lower, "skills") || strings.HasSuffix(lower, "skill.md") {
+			var fm AntigravitySkillFrontmatter
+			body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
+			skillName := fm.Name
+			if skillName == "" {
+				skillName = filepath.Base(filepath.Dir(baseDir))
+			}
+			doc := ir.NewDocument("skill-"+skillName, ir.TypeSkill, formatTitle(skillName))
+			doc.Metadata.Description = fm.Description
+			doc.Activation.Mode = ir.ModeOnDemand
+			doc.Payload.MarkdownBody = body
+			doc.Payload.RawSource = baseDir
+			return []*ir.UADocument{doc}, nil
+		}
+
+		// Default parse as rule
+		id := strings.TrimSuffix(baseName, ".md")
+		var fm AntigravityRuleFrontmatter
+		body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
+		doc := ir.NewDocument("rule-"+id, ir.TypeRule, formatTitle(id))
+		doc.Metadata.Description = fm.Description
+		if len(fm.Globs) > 0 {
+			doc.Activation.Mode = ir.ModeGlob
+			doc.Activation.Globs = fm.Globs
+		} else if fm.AlwaysApply {
+			doc.Activation.Mode = ir.ModeAlwaysOn
+		} else {
+			doc.Activation.Mode = ir.ModeModelDecision
+		}
+		doc.Payload.MarkdownBody = body
+		doc.Payload.RawSource = baseDir
+		return []*ir.UADocument{doc}, nil
+	}
+
 	var docs []*ir.UADocument
 
 	// 1. Check AGENTS.md in baseDir

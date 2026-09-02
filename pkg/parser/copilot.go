@@ -26,9 +26,62 @@ type CopilotInstructionFrontmatter struct {
 	Description  string   `yaml:"description"`
 }
 
-// ParseCopilotDirectory parses a .github/ directory containing copilot-instructions.md, instructions/, prompts/, agents/
-func ParseCopilotDirectory(githubDir string) ([]*ir.UADocument, error) {
+// ParseCopilotDirectory parses a .github/ directory containing copilot-instructions.md, instructions/, prompts/, agents/, or a single file
+func ParseCopilotDirectory(sourcePath string) ([]*ir.UADocument, error) {
+	fi, err := os.Stat(sourcePath)
+	if err == nil && !fi.IsDir() {
+		data, err := os.ReadFile(sourcePath)
+		if err != nil {
+			return nil, err
+		}
+		baseName := filepath.Base(sourcePath)
+		lower := strings.ToLower(sourcePath)
+
+		if strings.HasSuffix(lower, "copilot-instructions.md") {
+			doc := ir.NewDocument("instruction-global", ir.TypeInstruction, "Global Project Instructions")
+			doc.Metadata.Description = "Global instructions and architecture rules imported from GitHub Copilot"
+			doc.Activation.Mode = ir.ModeAlwaysOn
+			doc.Payload.MarkdownBody = string(data)
+			doc.Payload.RawSource = sourcePath
+			return []*ir.UADocument{doc}, nil
+		}
+
+		if strings.Contains(lower, "prompts") || strings.HasSuffix(lower, ".prompt.md") {
+			id := strings.TrimSuffix(baseName, ".prompt.md")
+			id = strings.TrimSuffix(id, ".md")
+			var fm CopilotPromptFrontmatter
+			body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
+			doc := ir.NewDocument("workflow-"+id, ir.TypeWorkflow, formatTitle(id))
+			if fm.Name != "" {
+				doc.Metadata.Name = fm.Name
+			}
+			doc.Metadata.Description = fm.Description
+			doc.Activation.Mode = ir.ModeOnDemand
+			doc.Payload.MarkdownBody = body
+			doc.Payload.RawSource = sourcePath
+			return []*ir.UADocument{doc}, nil
+		}
+
+		// Otherwise parse as instruction/rule
+		id := strings.TrimSuffix(baseName, ".instructions.md")
+		id = strings.TrimSuffix(id, ".md")
+		var fm CopilotInstructionFrontmatter
+		body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
+		doc := ir.NewDocument("rule-"+id, ir.TypeRule, formatTitle(id))
+		doc.Metadata.Description = fm.Description
+		if fm.ApplyTo != "" {
+			doc.Activation.Mode = ir.ModeGlob
+			doc.Activation.Globs = []string{fm.ApplyTo}
+		} else {
+			doc.Activation.Mode = ir.ModeAlwaysOn
+		}
+		doc.Payload.MarkdownBody = body
+		doc.Payload.RawSource = sourcePath
+		return []*ir.UADocument{doc}, nil
+	}
+
 	var docs []*ir.UADocument
+	githubDir := sourcePath
 
 	// 1. Check copilot-instructions.md (Project Root Instruction)
 	copilotInstPath := filepath.Join(githubDir, "copilot-instructions.md")

@@ -75,8 +75,30 @@ func LoadConfig(configPath string) (*Config, error) {
 	return &cfg, nil
 }
 
-// AutoDetectSource inspects a directory or repo root and returns the detected format and path
+// AutoDetectSource detects the source instruction format in a repository or file path
 func (e *Engine) AutoDetectSource(root string) (string, string) {
+	fi, err := os.Stat(root)
+	if err == nil && !fi.IsDir() {
+		lower := strings.ToLower(root)
+		if strings.Contains(lower, ".github") || strings.HasSuffix(lower, "copilot-instructions.md") || strings.HasSuffix(lower, ".prompt.md") || strings.HasSuffix(lower, ".instructions.md") {
+			return "copilot", root
+		}
+		if strings.Contains(lower, ".cursor") || strings.HasSuffix(lower, ".mdc") || strings.HasSuffix(lower, ".cursorrules") {
+			return "cursor", root
+		}
+		if strings.Contains(lower, ".claude") || strings.HasSuffix(lower, "claude.md") {
+			return "claude", root
+		}
+		if strings.Contains(lower, ".agents") || strings.HasSuffix(lower, "agents.md") || strings.HasSuffix(lower, "gemini.md") {
+			return "antigravity", root
+		}
+		return "antigravity", root
+	}
+
+	// 1. Direct .github root check
+	if strings.HasSuffix(root, ".github") {
+		return "copilot", root
+	}
 	// 1. Direct Copilot directory check (.github/ or current folder containing copilot files)
 	if _, err := os.Stat(filepath.Join(root, "copilot-instructions.md")); err == nil {
 		return "copilot", root
