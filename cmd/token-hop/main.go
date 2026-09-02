@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -11,10 +12,11 @@ import (
 	"github.com/yunkon-kim/token-hop/pkg/audit"
 	"github.com/yunkon-kim/token-hop/pkg/describer"
 	"github.com/yunkon-kim/token-hop/pkg/engine"
+	"github.com/yunkon-kim/token-hop/pkg/refiner"
 )
 
 var (
-	version = "v0.0.2"
+	version = "v0.0.3"
 )
 
 func main() {
@@ -38,7 +40,7 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 
 	// 2. Convert Command
 	var fromFormat, toFormat, inputPath, outputPath string
-	var useAI, autoDecompose, dryRun bool
+	var useAI, autoDecompose, dryRun, generatePrompt bool
 	var aiProvider, aiModel string
 
 	convertCmd := &cobra.Command{
@@ -49,6 +51,9 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 
   # Preview conversion without writing files (dry-run mode)
   thop convert --from copilot --to antigravity --dry-run
+
+  # Convert and automatically generate target AI refinement prompt (refine-prompt.md)
+  thop convert --from copilot --to antigravity --generate-prompt
 
   # Convert from GitHub Copilot to all supported targets (Antigravity, Cursor)
   thop convert --from copilot --to all
@@ -162,6 +167,25 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 				lastAudit = auditReport
 				totalFiles = append(totalFiles, writtenFiles...)
 				fmt.Printf("   ✅ Successfully generated %d files for %s\n", len(writtenFiles), target)
+
+				// 4.1 Generate AI Refinement Prompt if requested
+				if generatePrompt {
+					refinePrompt, err := eng.GenerateRefinePrompt(fromFormat, target, inputPath, "", 400)
+					if err == nil && refinePrompt != "" {
+						promptFileName := filepath.Join(outputPath, "refine-prompt-"+target+".md")
+						switch target {
+						case "antigravity":
+							promptFileName = filepath.Join(outputPath, ".agents", "refine-prompt.md")
+						case "cursor":
+							promptFileName = filepath.Join(outputPath, ".cursor", "refine-prompt.md")
+						case "copilot":
+							promptFileName = filepath.Join(outputPath, ".github", "refine-prompt.md")
+						}
+						_ = os.MkdirAll(filepath.Dir(promptFileName), 0755)
+						_ = os.WriteFile(promptFileName, []byte(refinePrompt), 0644)
+						fmt.Printf("   📝 Generated target AI refinement prompt -> %s\n", promptFileName)
+					}
+				}
 			}
 
 			// 5. Display Summary & Audit
@@ -221,6 +245,8 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 	convertCmd.Flags().StringVar(&aiProvider, "provider", "gemini", "AI provider (gemini, claude, openai, ollama, mock)")
 	convertCmd.Flags().StringVar(&aiModel, "model", "", "AI model override")
 	convertCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview mapping plan in table format without writing files")
+	convertCmd.Flags().BoolVar(&generatePrompt, "generate-prompt", false, "Generate target-specific AI refinement prompt (refine-prompt.md) after conversion")
+	convertCmd.Flags().BoolVar(&generatePrompt, "prompt", false, "Alias for --generate-prompt")
 	rootCmd.AddCommand(convertCmd)
 
 	// 3. Describe Command
@@ -361,6 +387,91 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 	describeCmd.Flags().BoolVar(&descSpec, "spec", false, "Display standard specification matrix between platforms")
 	describeCmd.Flags().IntVarP(&descMaxTokens, "max-tokens", "m", 400, "Maximum recommended token limit per rule")
 	rootCmd.AddCommand(describeCmd)
+
+	// 4. Prompt Command (Target-Specific AI Refinement Prompt Generator)
+	var promptTo, promptFrom, promptFile, promptDir, promptOut, promptGuidance string
+	var promptMaxTokens int
+
+	promptCmd := &cobra.Command{
+		Use:   "prompt",
+		Short: "Generate target-specific AI refinement prompts for semantic 2nd-stage optimization",
+		Example: `  # Generate refinement prompt for a converted Antigravity workflow
+  thop prompt --to antigravity --file .agents/workflows/git-commit.md
+
+  # Generate refinement prompt for all files in directory and export to file
+  thop prompt --to antigravity --dir .agents/ --out .agents/refine-prompt.md
+  thop prompt --to cursor --dir .cursor/rules/ --out .cursor/refine-prompt.md
+
+  # Output target AI optimization guideline template to console
+  thop prompt --to claude
+  thop prompt --to antigravity`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			eng := engine.NewEngine(nil)
+
+			// 1. Resolve target platform
+			toPlatform := promptTo
+			if toPlatform == "" || toPlatform == "auto" {
+				srcFormat, _ := eng.AutoDetectSource(".")
+				targets := eng.AutoDetectTargets(srcFormat, "")
+				if len(targets) > 0 {
+					toPlatform = targets[0]
+				} else {
+					toPlatform = "antigravity"
+				}
+			}
+
+			gen := refiner.NewGenerator(promptMaxTokens)
+			var promptContent string
+			var err error
+
+			if promptFile != "" {
+				promptContent, err = gen.GenerateFromFile(toPlatform, promptFile, promptGuidance)
+				if err != nil {
+					return fmt.Errorf("failed to generate prompt from file %s: %w", promptFile, err)
+				}
+			} else if promptDir != "" {
+				promptContent, err = gen.GenerateFromDirectory(toPlatform, promptDir, promptGuidance)
+				if err != nil {
+					return fmt.Errorf("failed to generate prompt from directory %s: %w", promptDir, err)
+				}
+			} else {
+				srcFormat := promptFrom
+				checkPath := "."
+				if srcFormat == "" || srcFormat == "auto" {
+					srcFormat, checkPath = eng.AutoDetectSource(checkPath)
+				}
+				docs, parseErr := eng.ParseSource(srcFormat, checkPath)
+				if parseErr == nil && len(docs) > 0 {
+					promptContent, err = gen.GenerateFromDocs(toPlatform, docs, promptGuidance)
+				} else {
+					promptContent, err = gen.GenerateFromDocs(toPlatform, nil, promptGuidance)
+				}
+				if err != nil {
+					return fmt.Errorf("failed to generate prompt: %w", err)
+				}
+			}
+
+			if promptOut != "" {
+				_ = os.MkdirAll(filepath.Dir(promptOut), 0755)
+				if err := os.WriteFile(promptOut, []byte(promptContent), 0644); err != nil {
+					return fmt.Errorf("failed to write prompt to %s: %w", promptOut, err)
+				}
+				fmt.Printf("📝 Refinement prompt successfully saved to: %s\n", promptOut)
+				return nil
+			}
+
+			fmt.Print(promptContent)
+			return nil
+		},
+	}
+	promptCmd.Flags().StringVarP(&promptTo, "to", "t", "antigravity", "Target AI platform (antigravity, cursor, claude, copilot)")
+	promptCmd.Flags().StringVarP(&promptFrom, "from", "f", "auto", "Source format if auto-parsing repo")
+	promptCmd.Flags().StringVar(&promptFile, "file", "", "Target file to generate refinement prompt for")
+	promptCmd.Flags().StringVar(&promptDir, "dir", "", "Directory containing files to include in prompt")
+	promptCmd.Flags().StringVarP(&promptOut, "out", "o", "", "File path to save the generated prompt")
+	promptCmd.Flags().StringVarP(&promptGuidance, "guidance", "g", "", "Custom project-specific instructions to append to prompt")
+	promptCmd.Flags().IntVarP(&promptMaxTokens, "max-tokens", "m", 400, "Recommended token limit threshold")
+	rootCmd.AddCommand(promptCmd)
 
 	// 3. Audit Command
 	var auditDir string

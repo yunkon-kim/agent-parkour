@@ -380,18 +380,21 @@ token-hop import --from claude CLAUDE.md
 token-hop compile --target antigravity,cursor,claude,copilot [--ai] [--watch]
 
 # 4. 다이렉트 변환 (단일 명령으로 Copilot -> Antigravity 즉시 변환)
-token-hop convert --from copilot --to antigravity [--dry-run]
+token-hop convert --from copilot --to antigravity [--dry-run] [--generate-prompt]
 
 # 5. 크로스 에이전트 설정 매핑 및 규격 사전 시각화 (테이블 출력 및 파일 저장)
 token-hop describe --from copilot --to antigravity [--out plan.md | --spec | --format markdown|json]
 
-# 6. 실시간 변경 감지 및 양방향 동기화 데몬
+# 6. 타겟 맞춤형 2차 AI 정제 프롬프트 생성 (Antigravity // turbo, Cursor @rule 등)
+token-hop prompt --to antigravity [--file <path>] [--dir <dir>] [--out <output_path>]
+
+# 7. 실시간 변경 감지 및 양방향 동기화 데몬
 token-hop watch --ssot AGENTS.md
 
-# 7. Promptfoo 기반 변환 규칙 품질 검증
+# 8. Promptfoo 기반 변환 규칙 품질 검증
 token-hop eval --config promptfooconfig.yaml --threshold 0.95
 
-# 8. 토큰 예산 및 컨텍스트 윈도우 정밀 감사
+# 9. 토큰 예산 및 컨텍스트 윈도우 정밀 감사
 token-hop audit --max-tokens 500
 ```
 

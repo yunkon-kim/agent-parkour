@@ -73,19 +73,27 @@ thop describe --from copilot --to antigravity --spec
 # 4) GitHub Copilot 설정을 Google Antigravity로 자동 대응 변환 (알아서 모든 파일 매핑)
 thop convert --from copilot --to antigravity
 
-# 5) 파일 쓰기 없이 변환 결과를 시뮬레이션 (Dry-Run 모드)
+# 5) 변환 완료와 동시에 타겟 맞춤형 2차 AI 정제 프롬프트(refine-prompt.md) 자동 생성
+thop convert --from copilot --to antigravity --generate-prompt
+
+# 6) 파일 쓰기 없이 변환 결과를 시뮬레이션 (Dry-Run 모드)
 thop convert --from copilot --to antigravity --dry-run
 
-# 6) GitHub Copilot 설정을 지원되는 모든 타겟(Antigravity, Cursor)으로 일괄 변환
+# 7) GitHub Copilot 설정을 지원되는 모든 타겟(Antigravity, Cursor)으로 일괄 변환
 thop convert --from copilot --to all
 
-# 7) 특정 AI 타겟으로 변환 (소스는 현재 레포에서 자동 감지)
+# 8) 특정 AI 타겟으로 변환 (소스는 현재 레포에서 자동 감지)
 thop convert --to cursor
 
-# 8) 프로젝트 내 모든 규칙의 토큰 수 및 컨텍스트 한도 정밀 감사
+# 9) 타겟 맞춤형 2차 AI 정제 프롬프트 생성 (Antigravity // turbo, Cursor @rule 등 반영)
+thop prompt --to antigravity --file .agents/workflows/git-commit.md
+thop prompt --to antigravity --dir .agents/ --out .agents/refine-prompt.md
+thop prompt --to cursor --out .cursor/refine-prompt.md
+
+# 10) 프로젝트 내 모든 규칙의 토큰 수 및 컨텍스트 한도 정밀 감사
 thop audit
 
-# 9) 신규 프로젝트에 SSOT 템플릿(AGENTS.md) 초기화
+# 11) 신규 프로젝트에 SSOT 템플릿(AGENTS.md) 초기화
 thop init
 ```
 

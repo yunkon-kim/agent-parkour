@@ -73,19 +73,27 @@ thop describe --from copilot --to antigravity --spec
 # 4) Convert from GitHub Copilot to Google Antigravity (auto-maps all rules & prompts)
 thop convert --from copilot --to antigravity
 
-# 5) Convert with dry-run preview (simulates without writing files)
+# 5) Convert and automatically generate target AI refinement prompt (refine-prompt.md)
+thop convert --from copilot --to antigravity --generate-prompt
+
+# 6) Convert with dry-run preview (simulates without writing files)
 thop convert --from copilot --to antigravity --dry-run
 
-# 6) Convert from GitHub Copilot to all supported targets (Antigravity, Cursor)
+# 7) Convert from GitHub Copilot to all supported targets (Antigravity, Cursor)
 thop convert --from copilot --to all
 
-# 7) Convert to a specific target (auto-detects source in repo)
+# 8) Convert to a specific target (auto-detects source in repo)
 thop convert --to cursor
 
-# 8) Audit token counts & context limits across all rules
+# 9) Generate target-specific AI refinement prompt for semantic 2nd-stage optimization
+thop prompt --to antigravity --file .agents/workflows/git-commit.md
+thop prompt --to antigravity --dir .agents/ --out .agents/refine-prompt.md
+thop prompt --to cursor --out .cursor/refine-prompt.md
+
+# 10) Audit token counts & context limits across all rules
 thop audit
 
-# 9) Initialize a new project with SSOT scaffolding (AGENTS.md)
+# 11) Initialize a new project with SSOT scaffolding (AGENTS.md)
 thop init
 ```
 

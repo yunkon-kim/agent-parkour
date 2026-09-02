@@ -13,6 +13,7 @@ import (
 	"github.com/yunkon-kim/token-hop/pkg/emitter"
 	"github.com/yunkon-kim/token-hop/pkg/ir"
 	"github.com/yunkon-kim/token-hop/pkg/parser"
+	"github.com/yunkon-kim/token-hop/pkg/refiner"
 	"gopkg.in/yaml.v3"
 )
 
@@ -201,6 +202,27 @@ func (e *Engine) Describe(from, to, inputPath, outputDir string, maxTokens int) 
 
 	analyzer := describer.NewMappingAnalyzer(maxTokens)
 	return analyzer.Analyze(docs, from, to, inputPath, outputDir), nil
+}
+
+// GenerateRefinePrompt builds a target-specific AI refinement prompt from parsed instructions or files
+func (e *Engine) GenerateRefinePrompt(from, to, inputPath, customGuidance string, maxTokens int) (string, error) {
+	fi, err := os.Stat(inputPath)
+	if err == nil && !fi.IsDir() {
+		gen := refiner.NewGenerator(maxTokens)
+		return gen.GenerateFromFile(to, inputPath, customGuidance)
+	}
+
+	docs, err := e.ParseSource(from, inputPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse source (%s): %w", from, err)
+	}
+
+	if len(docs) == 0 {
+		return "", fmt.Errorf("no valid instruction documents found in %s", inputPath)
+	}
+
+	gen := refiner.NewGenerator(maxTokens)
+	return gen.GenerateFromDocs(to, docs, customGuidance)
 }
 
 // Convert converts instructions directly from source to target
