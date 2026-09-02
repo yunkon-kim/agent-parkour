@@ -133,49 +133,79 @@ func ParseAntigravityDirectory(baseDir string) ([]*ir.UADocument, error) {
 	return docs, nil
 }
 
-// ParseCursorDirectory parses .cursor/rules/*.mdc
-func ParseCursorDirectory(cursorRulesDir string) ([]*ir.UADocument, error) {
+// ParseCursorDirectory parses .cursor/rules/*.mdc or root .cursorrules
+func ParseCursorDirectory(cursorPath string) ([]*ir.UADocument, error) {
 	var docs []*ir.UADocument
 
-	entries, err := os.ReadDir(cursorRulesDir)
-	if err != nil {
-		return nil, err
+	// 1. Check if single file (e.g. .cursorrules or specific .mdc)
+	fi, err := os.Stat(cursorPath)
+	if err == nil && !fi.IsDir() {
+		data, err := os.ReadFile(cursorPath)
+		if err != nil {
+			return nil, err
+		}
+		doc := ir.NewDocument("instruction-cursor-root", ir.TypeInstruction, "Cursor Root Rules")
+		doc.Metadata.Description = "Root instructions imported from Cursor"
+		doc.Activation.Mode = ir.ModeAlwaysOn
+		doc.Payload.MarkdownBody = string(data)
+		doc.Payload.RawSource = cursorPath
+		return []*ir.UADocument{doc}, nil
 	}
 
-	for _, entry := range entries {
-		if entry.IsDir() || (!strings.HasSuffix(entry.Name(), ".mdc") && !strings.HasSuffix(entry.Name(), ".md")) {
-			continue
-		}
-		filePath := filepath.Join(cursorRulesDir, entry.Name())
-		data, err := os.ReadFile(filePath)
-		if err != nil {
-			continue
-		}
-
-		id := strings.TrimSuffix(entry.Name(), ".mdc")
-		id = strings.TrimSuffix(id, ".md")
-
-		var fm struct {
-			Description string   `yaml:"description"`
-			Globs       []string `yaml:"globs"`
-			AlwaysApply bool     `yaml:"alwaysApply"`
-		}
-		body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
-
-		doc := ir.NewDocument("rule-"+id, ir.TypeRule, formatTitle(id))
-		doc.Metadata.Description = fm.Description
-		if fm.AlwaysApply {
-			doc.Activation.Mode = ir.ModeAlwaysOn
-		} else if len(fm.Globs) > 0 {
-			doc.Activation.Mode = ir.ModeGlob
-			doc.Activation.Globs = fm.Globs
-		} else {
-			doc.Activation.Mode = ir.ModeModelDecision
-		}
-
-		doc.Payload.MarkdownBody = body
-		doc.Payload.RawSource = filePath
+	// 2. Check root .cursorrules if cursorPath is directory
+	legacyCursorRules := filepath.Join(cursorPath, ".cursorrules")
+	if data, err := os.ReadFile(legacyCursorRules); err == nil {
+		doc := ir.NewDocument("instruction-cursorrules", ir.TypeInstruction, "Cursor Legacy Rules")
+		doc.Metadata.Description = "Root instructions imported from .cursorrules"
+		doc.Activation.Mode = ir.ModeAlwaysOn
+		doc.Payload.MarkdownBody = string(data)
+		doc.Payload.RawSource = legacyCursorRules
 		docs = append(docs, doc)
+	}
+
+	// 3. Scan directory (.cursor/rules/ or cursorPath)
+	targetDir := cursorPath
+	if _, err := os.Stat(filepath.Join(cursorPath, ".cursor", "rules")); err == nil {
+		targetDir = filepath.Join(cursorPath, ".cursor", "rules")
+	}
+
+	entries, err := os.ReadDir(targetDir)
+	if err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() || (!strings.HasSuffix(entry.Name(), ".mdc") && !strings.HasSuffix(entry.Name(), ".md")) {
+				continue
+			}
+			filePath := filepath.Join(targetDir, entry.Name())
+			data, err := os.ReadFile(filePath)
+			if err != nil {
+				continue
+			}
+
+			id := strings.TrimSuffix(entry.Name(), ".mdc")
+			id = strings.TrimSuffix(id, ".md")
+
+			var fm struct {
+				Description string   `yaml:"description"`
+				Globs       []string `yaml:"globs"`
+				AlwaysApply bool     `yaml:"alwaysApply"`
+			}
+			body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
+
+			doc := ir.NewDocument("rule-"+id, ir.TypeRule, formatTitle(id))
+			doc.Metadata.Description = fm.Description
+			if fm.AlwaysApply {
+				doc.Activation.Mode = ir.ModeAlwaysOn
+			} else if len(fm.Globs) > 0 {
+				doc.Activation.Mode = ir.ModeGlob
+				doc.Activation.Globs = fm.Globs
+			} else {
+				doc.Activation.Mode = ir.ModeModelDecision
+			}
+
+			doc.Payload.MarkdownBody = body
+			doc.Payload.RawSource = filePath
+			docs = append(docs, doc)
+		}
 	}
 
 	return docs, nil

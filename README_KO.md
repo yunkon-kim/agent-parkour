@@ -60,19 +60,32 @@ alias thop=token-hop
 어떤 프로젝트 디렉터리에서든 추가 설정 없이 즉시 실행:
 
 ```bash
-# 1) GitHub Copilot 설정을 Google Antigravity로 자동 대응 변환 (알아서 모든 파일 매핑)
+# 1) 변환 전 소스 -> 타겟 파일 매핑 계획을 테이블로 사전 확인
+thop describe --from copilot --to antigravity
+
+# 2) 매핑 계획을 파일로 직접 내보내기 (확장자에 따라 Markdown / JSON 자동 서식 적용)
+thop describe --from copilot --to antigravity --out plan.md
+thop describe --from copilot --to antigravity --out plan.json
+
+# 3) 플랫폼 간 6대 핵심 엔티티(규칙, 스킬, 워크플로우 등) 표준 규격 매트릭스 조회
+thop describe --from copilot --to antigravity --spec
+
+# 4) GitHub Copilot 설정을 Google Antigravity로 자동 대응 변환 (알아서 모든 파일 매핑)
 thop convert --from copilot --to antigravity
 
-# 2) GitHub Copilot 설정을 지원되는 모든 타겟(Antigravity, Cursor)으로 일괄 변환
+# 5) 파일 쓰기 없이 변환 결과를 시뮬레이션 (Dry-Run 모드)
+thop convert --from copilot --to antigravity --dry-run
+
+# 6) GitHub Copilot 설정을 지원되는 모든 타겟(Antigravity, Cursor)으로 일괄 변환
 thop convert --from copilot --to all
 
-# 3) 특정 AI 타겟으로 변환 (소스는 현재 레포에서 자동 감지)
+# 7) 특정 AI 타겟으로 변환 (소스는 현재 레포에서 자동 감지)
 thop convert --to cursor
 
-# 4) 프로젝트 내 모든 규칙의 토큰 수 및 컨텍스트 한도 정밀 감사
+# 8) 프로젝트 내 모든 규칙의 토큰 수 및 컨텍스트 한도 정밀 감사
 thop audit
 
-# 5) 신규 프로젝트에 SSOT 템플릿(AGENTS.md) 초기화
+# 9) 신규 프로젝트에 SSOT 템플릿(AGENTS.md) 초기화
 thop init
 ```
 

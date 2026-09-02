@@ -9,6 +9,7 @@ import (
 
 	"github.com/yunkon-kim/token-hop/pkg/ai"
 	"github.com/yunkon-kim/token-hop/pkg/audit"
+	"github.com/yunkon-kim/token-hop/pkg/describer"
 	"github.com/yunkon-kim/token-hop/pkg/emitter"
 	"github.com/yunkon-kim/token-hop/pkg/ir"
 	"github.com/yunkon-kim/token-hop/pkg/parser"
@@ -103,10 +104,13 @@ func (e *Engine) AutoDetectSource(root string) (string, string) {
 		return "antigravity", root
 	}
 
-	// 4. Check for Cursor (.cursor/rules/)
+	// 4. Check for Cursor (.cursor/rules/ or .cursorrules)
 	cursorRules := filepath.Join(root, ".cursor", "rules")
 	if _, err := os.Stat(cursorRules); err == nil {
 		return "cursor", cursorRules
+	}
+	if _, err := os.Stat(filepath.Join(root, ".cursorrules")); err == nil {
+		return "cursor", root
 	}
 	if _, err := os.Stat(filepath.Join(root, "rules")); err == nil {
 		return "cursor", filepath.Join(root, "rules")
@@ -182,6 +186,21 @@ func (e *Engine) EmitTarget(target string, docs []*ir.UADocument, outputDir stri
 	default:
 		return nil, fmt.Errorf("unsupported target format: %s", target)
 	}
+}
+
+// Describe generates a dry-run transformation mapping report without modifying disk files
+func (e *Engine) Describe(from, to, inputPath, outputDir string, maxTokens int) (*describer.MappingReport, error) {
+	docs, err := e.ParseSource(from, inputPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse source (%s) for description: %w", from, err)
+	}
+
+	if len(docs) == 0 {
+		return nil, fmt.Errorf("no valid instruction documents found in %s", inputPath)
+	}
+
+	analyzer := describer.NewMappingAnalyzer(maxTokens)
+	return analyzer.Analyze(docs, from, to, inputPath, outputDir), nil
 }
 
 // Convert converts instructions directly from source to target

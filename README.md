@@ -60,19 +60,32 @@ alias thop=token-hop
 Run inside any of your projects with zero configuration:
 
 ```bash
-# 1) Convert from GitHub Copilot to Google Antigravity (auto-maps all rules & prompts)
+# 1) Preview transformation mapping plan in tabular format before converting
+thop describe --from copilot --to antigravity
+
+# 2) Preview mapping plan and export directly to Markdown or JSON file
+thop describe --from copilot --to antigravity --out plan.md
+thop describe --from copilot --to antigravity --out plan.json
+
+# 3) View cross-agent specification matrix (locations, syntax, and behaviors)
+thop describe --from copilot --to antigravity --spec
+
+# 4) Convert from GitHub Copilot to Google Antigravity (auto-maps all rules & prompts)
 thop convert --from copilot --to antigravity
 
-# 2) Convert from GitHub Copilot to all supported targets (Antigravity, Cursor)
+# 5) Convert with dry-run preview (simulates without writing files)
+thop convert --from copilot --to antigravity --dry-run
+
+# 6) Convert from GitHub Copilot to all supported targets (Antigravity, Cursor)
 thop convert --from copilot --to all
 
-# 3) Convert to a specific target (auto-detects source in repo)
+# 7) Convert to a specific target (auto-detects source in repo)
 thop convert --to cursor
 
-# 4) Audit token counts & context limits across all rules
+# 8) Audit token counts & context limits across all rules
 thop audit
 
-# 5) Initialize a new project with SSOT scaffolding (AGENTS.md)
+# 9) Initialize a new project with SSOT scaffolding (AGENTS.md)
 thop init
 ```
 

@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/yunkon-kim/token-hop/pkg/ai"
 	"github.com/yunkon-kim/token-hop/pkg/audit"
+	"github.com/yunkon-kim/token-hop/pkg/describer"
 	"github.com/yunkon-kim/token-hop/pkg/engine"
 )
 
@@ -37,7 +38,7 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 
 	// 2. Convert Command
 	var fromFormat, toFormat, inputPath, outputPath string
-	var useAI, autoDecompose bool
+	var useAI, autoDecompose, dryRun bool
 	var aiProvider, aiModel string
 
 	convertCmd := &cobra.Command{
@@ -45,6 +46,9 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 		Short: "Convert instructions across AI agent formats with automatic path mapping",
 		Example: `  # Convert from GitHub Copilot to Google Antigravity (auto-locates .github/ files)
   thop convert --from copilot --to antigravity
+
+  # Preview conversion without writing files (dry-run mode)
+  thop convert --from copilot --to antigravity --dry-run
 
   # Convert from GitHub Copilot to all supported targets (Antigravity, Cursor)
   thop convert --from copilot --to all
@@ -97,6 +101,21 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 			targets := eng.AutoDetectTargets(fromFormat, toFormat)
 			if len(targets) == 0 {
 				return fmt.Errorf("no valid targets specified for %q", toFormat)
+			}
+
+			// 2.1 If Dry-Run is enabled, preview with Describe instead of writing files
+			if dryRun {
+				for _, target := range targets {
+					report, err := eng.Describe(fromFormat, target, inputPath, outputPath, 400)
+					if err != nil {
+						return fmt.Errorf("dry-run preview failed for %s: %w", target, err)
+					}
+					fmt.Print(describer.FormatMappingReport(report, describer.FormatTable))
+					if len(targets) > 1 {
+						fmt.Println()
+					}
+				}
+				return nil
 			}
 
 			// 3. Setup AI Provider if requested or configured
@@ -201,7 +220,147 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 	convertCmd.Flags().BoolVarP(&autoDecompose, "decompose", "d", false, "Semantically decompose oversized rules into JIT skills")
 	convertCmd.Flags().StringVar(&aiProvider, "provider", "gemini", "AI provider (gemini, claude, openai, ollama, mock)")
 	convertCmd.Flags().StringVar(&aiModel, "model", "", "AI model override")
+	convertCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview mapping plan in table format without writing files")
 	rootCmd.AddCommand(convertCmd)
+
+	// 3. Describe Command
+	var descFrom, descTo, descInput, descOutput, descFormat, descOutFile string
+	var descSpec bool
+	var descMaxTokens int
+
+	describeCmd := &cobra.Command{
+		Use:   "describe",
+		Short: "Describe cross-agent mapping plan and specifications in tabular format before conversion",
+		Example: `  # Preview file mapping plan from Copilot to Antigravity
+  thop describe --from copilot --to antigravity
+
+  # Auto-detect source in current project and preview mapping to Cursor
+  thop describe --to cursor
+
+  # Save mapping report to a file (auto-detects Markdown for .md or JSON for .json)
+  thop describe --from copilot --to antigravity --out mapping.md
+  thop describe --from copilot --to antigravity --out plan.json
+
+  # Show conceptual specification matrix between platforms
+  thop describe --from copilot --to antigravity --spec
+
+  # Output as Markdown or JSON to stdout
+  thop describe --from copilot --to antigravity --format markdown
+  thop describe --from copilot --to antigravity --format json`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			eng := engine.NewEngine(nil)
+
+			// Helper to determine effective format
+			resolveFormat := func(explicitFormat, outFile string) describer.OutputFormat {
+				if cmd.Flags().Changed("format") {
+					return describer.OutputFormat(explicitFormat)
+				}
+				if outFile != "" {
+					lower := strings.ToLower(outFile)
+					if strings.HasSuffix(lower, ".md") {
+						return describer.FormatMarkdown
+					}
+					if strings.HasSuffix(lower, ".json") {
+						return describer.FormatJSON
+					}
+				}
+				return describer.FormatTable
+			}
+
+			// 1. Spec Matrix Mode (--spec)
+			if descSpec {
+				fromP := descFrom
+				if fromP == "" || fromP == "auto" {
+					fromP, _ = eng.AutoDetectSource(".")
+				}
+				toP := descTo
+				if toP == "" || toP == "auto" {
+					targets := eng.AutoDetectTargets(fromP, "")
+					if len(targets) > 0 {
+						toP = targets[0]
+					} else {
+						toP = "antigravity"
+					}
+				}
+				matrix := describer.BuildSpecMatrix(fromP, toP)
+				effectiveFormat := resolveFormat(descFormat, descOutFile)
+				content := describer.FormatSpecMatrix(matrix, effectiveFormat)
+
+				if descOutFile != "" {
+					if err := os.WriteFile(descOutFile, []byte(content), 0644); err != nil {
+						return fmt.Errorf("failed to write spec matrix to %s: %w", descOutFile, err)
+					}
+					fmt.Printf("📄 Specification matrix successfully exported to: %s (%s format)\n", descOutFile, effectiveFormat)
+					return nil
+				}
+
+				fmt.Print(content)
+				return nil
+			}
+
+			// 2. Resolve source path & format
+			checkPath := "."
+			if cmd.Flags().Changed("input") {
+				checkPath = descInput
+			}
+			detectedFrom, detectedInput := eng.AutoDetectSource(checkPath)
+
+			if !cmd.Flags().Changed("from") || descFrom == "auto" {
+				descFrom = detectedFrom
+			}
+			if !cmd.Flags().Changed("input") {
+				if descFrom == "copilot" && checkPath == "." {
+					if _, err := os.Stat(".github"); err == nil {
+						descInput = ".github"
+					} else {
+						descInput = detectedInput
+					}
+				} else {
+					descInput = detectedInput
+				}
+			}
+
+			// 3. Resolve target list
+			targets := eng.AutoDetectTargets(descFrom, descTo)
+			if len(targets) == 0 {
+				return fmt.Errorf("no valid target platform specified (use --to <target>)")
+			}
+
+			effectiveFormat := resolveFormat(descFormat, descOutFile)
+			var fullOutput strings.Builder
+
+			for _, target := range targets {
+				report, err := eng.Describe(descFrom, target, descInput, descOutput, descMaxTokens)
+				if err != nil {
+					return fmt.Errorf("describe failed for target %s: %w", target, err)
+				}
+				fullOutput.WriteString(describer.FormatMappingReport(report, effectiveFormat))
+				if len(targets) > 1 {
+					fullOutput.WriteString("\n")
+				}
+			}
+
+			if descOutFile != "" {
+				if err := os.WriteFile(descOutFile, []byte(fullOutput.String()), 0644); err != nil {
+					return fmt.Errorf("failed to write description report to %s: %w", descOutFile, err)
+				}
+				fmt.Printf("📄 Mapping description plan successfully exported to: %s (%s format)\n", descOutFile, effectiveFormat)
+				return nil
+			}
+
+			fmt.Print(fullOutput.String())
+			return nil
+		},
+	}
+	describeCmd.Flags().StringVarP(&descFrom, "from", "f", "auto", "Source agent format (copilot, cursor, antigravity, claude)")
+	describeCmd.Flags().StringVarP(&descTo, "to", "t", "auto", "Target agent format (antigravity, cursor, copilot, claude, or 'all')")
+	describeCmd.Flags().StringVarP(&descInput, "input", "i", ".", "Path to source directory or file (auto-detected if omitted)")
+	describeCmd.Flags().StringVarP(&descOutput, "output", "o", ".", "Target output directory")
+	describeCmd.Flags().StringVar(&descFormat, "format", "table", "Output format: table, markdown, json")
+	describeCmd.Flags().StringVar(&descOutFile, "out", "", "Export mapping plan directly to a file (.md, .json, .txt)")
+	describeCmd.Flags().BoolVar(&descSpec, "spec", false, "Display standard specification matrix between platforms")
+	describeCmd.Flags().IntVarP(&descMaxTokens, "max-tokens", "m", 400, "Maximum recommended token limit per rule")
+	rootCmd.AddCommand(describeCmd)
 
 	// 3. Audit Command
 	var auditDir string
