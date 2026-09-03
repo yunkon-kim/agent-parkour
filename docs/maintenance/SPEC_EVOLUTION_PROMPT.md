@@ -1,17 +1,17 @@
 # Agent Specification Evolution & Target Update Prompt
 **AI 코딩 에이전트 스펙 변경 및 신규 타겟 추가를 위한 AI 프롬프트 가이드**
 
-> 이 문서는 Cursor, Google Antigravity, GitHub Copilot, Claude Code 등 AI 도구들의 **설정 디렉토리, 파일 확장자, 프론트매터 스키마, 토큰 제한 정책이 변경되거나 신규 AI 도구가 출시되었을 때**, AI 에이전트(Antigravity, Claude, ChatGPT 등)에게 전달하여 `token-hop` 코드를 안전하고 일관되게 최신화하도록 지시하는 **스펙 진화 프롬프트(Spec Evolution Prompt)**입니다.
+> 이 문서는 Cursor, Google Antigravity, GitHub Copilot, Claude Code 등 AI 도구들의 **설정 디렉토리, 파일 확장자, 프론트매터 스키마, 토큰 제한 정책이 변경되거나 신규 AI 도구가 출시되었을 때**, AI 에이전트(Antigravity, Claude, ChatGPT 등)에게 전달하여 `agent-parkour` 코드를 안전하고 일관되게 최신화하도록 지시하는 **스펙 진화 프롬프트(Spec Evolution Prompt)**입니다.
 
 ---
 
 ## 📋 복사하여 사용할 수 있는 프롬프트 템플릿
 
 ```markdown
-# Role: Senior Compiler & Toolchain Engineer for Token-Hop
+# Role: Senior Compiler & Toolchain Engineer for Agent-Parkour
 
 ## Goal
-Update the `token-hop` codebase to support the latest specifications or new AI coding assistant environments.
+Update the `agent-parkour` codebase to support the latest specifications or new AI coding assistant environments.
 
 ## Target AI Tool / Specification Change
 - **Tool Name**: [예: Cursor / Google Antigravity / Windsurf / Claude Code / Roo Code]

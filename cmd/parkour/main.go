@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/yunkon-kim/token-hop/pkg/ai"
-	"github.com/yunkon-kim/token-hop/pkg/audit"
-	"github.com/yunkon-kim/token-hop/pkg/describer"
-	"github.com/yunkon-kim/token-hop/pkg/engine"
-	"github.com/yunkon-kim/token-hop/pkg/refiner"
+	"github.com/yunkon-kim/agent-parkour/pkg/ai"
+	"github.com/yunkon-kim/agent-parkour/pkg/audit"
+	"github.com/yunkon-kim/agent-parkour/pkg/describer"
+	"github.com/yunkon-kim/agent-parkour/pkg/engine"
+	"github.com/yunkon-kim/agent-parkour/pkg/refiner"
 )
 
 var (
@@ -21,11 +21,14 @@ var (
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "token-hop",
-		Short: "token-hop (thop): Cross-Agent Prompt Compiler & Context Synchronizer",
-		Long: `token-hop (thop) is a universal prompt compiler and context synchronizer
+		Use:     "parkour",
+		Aliases: []string{"pk", "agent-parkour", "thop", "token-hop"},
+		Short:   "agent-parkour (parkour / pk): Vault across AI coding agents without token walls",
+		Long: `agent-parkour (parkour, pk) is a universal prompt compiler and context synchronizer
 that eliminates configuration fragmentation across Google Antigravity, Cursor,
-Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
+Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.
+
+Hit a token wall? Vault across your AI coding agents in under 10ms! 🏃💨`,
 	}
 
 	// 1. Version Command
@@ -33,7 +36,7 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 		Use:   "version",
 		Short: "Print version information",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("token-hop (thop) %s - Cross-Agent Prompt Compiler\n", version)
+			fmt.Printf("agent-parkour (parkour / pk) %s - Cross-Agent Prompt Compiler\n", version)
 		},
 	}
 	rootCmd.AddCommand(versionCmd)
@@ -47,22 +50,22 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 		Use:   "convert",
 		Short: "Convert instructions across AI agent formats with automatic path mapping",
 		Example: `  # Convert from GitHub Copilot to Google Antigravity (auto-locates .github/ files)
-  thop convert --from copilot --to antigravity
+  parkour convert --from copilot --to antigravity
 
   # Preview conversion without writing files (dry-run mode)
-  thop convert --from copilot --to antigravity --dry-run
+  parkour convert --from copilot --to antigravity --dry-run
 
   # Convert and automatically generate target AI refinement prompt (refine-prompt.md)
-  thop convert --from copilot --to antigravity --generate-prompt
+  parkour convert --from copilot --to antigravity --generate-prompt
 
   # Convert from GitHub Copilot to all supported targets (Antigravity, Cursor)
-  thop convert --from copilot --to all
+  parkour convert --from copilot --to all
 
   # Convert to a specific target (auto-detects source in repo)
-  thop convert --to cursor
+  parkour convert --to cursor
 
   # Optional AI-powered semantic decomposition for oversized rules
-  thop convert --from copilot --to antigravity --decompose --ai --provider gemini`,
+  parkour convert --from copilot --to antigravity --decompose --ai --provider gemini`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			eng := engine.NewEngine(nil)
 
@@ -71,11 +74,11 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 				fmt.Println("⚠️  Please specify a target format with --to <format> or --to all")
 				fmt.Println()
 				fmt.Println("👉 Common Examples:")
-				fmt.Println("   thop convert --from copilot --to antigravity")
-				fmt.Println("   thop convert --from copilot --to all")
-				fmt.Println("   thop convert --to cursor")
+				fmt.Println("   parkour convert --from copilot --to antigravity")
+				fmt.Println("   parkour convert --from copilot --to all")
+				fmt.Println("   parkour convert --to cursor")
 				fmt.Println()
-				fmt.Println("💡 Run 'thop convert --help' for all available options.")
+				fmt.Println("💡 Run 'parkour convert --help' for all available options.")
 				return nil
 			}
 
@@ -141,11 +144,11 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 					fmt.Printf("⚠️  AI Provider note: %v (falling back to deterministic core)\n", err)
 				} else {
 					eng.SetAIProvider(provider)
-					fmt.Printf("🤖 [token-hop AI] Augmented with %s (%s)\n", strings.ToUpper(provider.Name()), provider.Model())
+					fmt.Printf("🤖 [agent-parkour AI] Augmented with %s (%s)\n", strings.ToUpper(provider.Name()), provider.Model())
 				}
 			}
 
-			fmt.Printf("🚀 [token-hop] Converting from '%s' to '%s'...\n", strings.ToUpper(fromFormat), strings.Join(targets, ", "))
+			fmt.Printf("🚀 [agent-parkour] Vaulting from '%s' to '%s'...\n", strings.ToUpper(fromFormat), strings.Join(targets, ", "))
 			fmt.Printf("   Source Path : %s\n", inputPath)
 			fmt.Printf("   Output Dir  : %s\n", outputPath)
 			if autoDecompose {
@@ -215,7 +218,7 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 			// 6. Action Items & Next Steps for the User
 			fmt.Println("👉 Next Steps & Action Items:")
 			fmt.Println("   1. Review changes   : Run 'git status' or 'git diff' to review the generated files.")
-			
+
 			for _, target := range targets {
 				switch target {
 				case "antigravity":
@@ -258,21 +261,21 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 		Use:   "describe",
 		Short: "Describe cross-agent mapping plan and specifications in tabular format before conversion",
 		Example: `  # Preview file mapping plan from Copilot to Antigravity
-  thop describe --from copilot --to antigravity
+  parkour describe --from copilot --to antigravity
 
   # Auto-detect source in current project and preview mapping to Cursor
-  thop describe --to cursor
+  parkour describe --to cursor
 
   # Save mapping report to a file (auto-detects Markdown for .md or JSON for .json)
-  thop describe --from copilot --to antigravity --out mapping.md
-  thop describe --from copilot --to antigravity --out plan.json
+  parkour describe --from copilot --to antigravity --out mapping.md
+  parkour describe --from copilot --to antigravity --out plan.json
 
   # Show conceptual specification matrix between platforms
-  thop describe --from copilot --to antigravity --spec
+  parkour describe --from copilot --to antigravity --spec
 
   # Output as Markdown or JSON to stdout
-  thop describe --from copilot --to antigravity --format markdown
-  thop describe --from copilot --to antigravity --format json`,
+  parkour describe --from copilot --to antigravity --format markdown
+  parkour describe --from copilot --to antigravity --format json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			eng := engine.NewEngine(nil)
 
@@ -396,15 +399,15 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 		Use:   "prompt",
 		Short: "Generate target-specific AI refinement prompts for semantic 2nd-stage optimization",
 		Example: `  # Generate refinement prompt for a converted Antigravity workflow
-  thop prompt --to antigravity --file .agents/workflows/git-commit.md
+  parkour prompt --to antigravity --file .agents/workflows/git-commit.md
 
   # Generate refinement prompt for all files in directory and export to file
-  thop prompt --to antigravity --dir .agents/ --out .agents/refine-prompt.md
-  thop prompt --to cursor --dir .cursor/rules/ --out .cursor/refine-prompt.md
+  parkour prompt --to antigravity --dir .agents/ --out .agents/refine-prompt.md
+  parkour prompt --to cursor --dir .cursor/rules/ --out .cursor/refine-prompt.md
 
   # Output target AI optimization guideline template to console
-  thop prompt --to claude
-  thop prompt --to antigravity`,
+  parkour prompt --to claude
+  parkour prompt --to antigravity`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			eng := engine.NewEngine(nil)
 
@@ -473,7 +476,7 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 	promptCmd.Flags().IntVarP(&promptMaxTokens, "max-tokens", "m", 400, "Recommended token limit threshold")
 	rootCmd.AddCommand(promptCmd)
 
-	// 3. Audit Command
+	// 5. Audit Command
 	var auditDir string
 	var maxTokens int
 	auditCmd := &cobra.Command{
@@ -488,7 +491,7 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 			}
 
 			report := audit.AuditDocuments(docs, maxTokens)
-			fmt.Printf("📊 [token-hop Token Audit Report for: %s (%s)]\n", input, strings.ToUpper(from))
+			fmt.Printf("📊 [agent-parkour Token Audit Report for: %s (%s)]\n", input, strings.ToUpper(from))
 			fmt.Printf("   Total Documents: %d | Total Tokens: ~%d | Total Characters: %d\n\n",
 				report.TotalDocuments, report.TotalTokens, report.TotalCharacters)
 
@@ -509,12 +512,12 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 	auditCmd.Flags().IntVarP(&maxTokens, "max-tokens", "m", 400, "Maximum allowed tokens per instruction")
 	rootCmd.AddCommand(auditCmd)
 
-	// 4. Init Command
+	// 6. Init Command
 	initCmd := &cobra.Command{
 		Use:   "init",
-		Short: "Initialize token-hop SSOT scaffolding and token-hop.yaml in current project",
+		Short: "Initialize agent-parkour SSOT scaffolding and parkour.yaml in current project",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("🎉 Initializing token-hop SSOT in current project...")
+			fmt.Println("🏃 Initializing agent-parkour SSOT in current project...")
 			if _, err := os.Stat("AGENTS.md"); os.IsNotExist(err) {
 				content := `# Project Agent Guidelines (Single Source of Truth)
 
@@ -527,10 +530,41 @@ Claude Code, GitHub Copilot, Gemini CLI, and Roo Code.`,
 - Follow standard formatting and linting rules.
 - Write concise, explicit, and self-documenting code.
 `
-				os.WriteFile("AGENTS.md", []byte(content), 0644)
+				_ = os.WriteFile("AGENTS.md", []byte(content), 0644)
 				fmt.Println("   • Created AGENTS.md (Root SSOT)")
 			}
-			fmt.Println("✅ token-hop initialized successfully!")
+
+			if _, err := os.Stat("parkour.yaml"); os.IsNotExist(err) {
+				cfgContent := `version: "1.0"
+ssot: "AGENTS.md"
+
+# Target AI configurations
+targets:
+  - name: "antigravity"
+    output_dir: ".agents"
+    enable_skills: true
+  - name: "cursor"
+    output_dir: ".cursor/rules"
+  - name: "claude"
+    output_file: "CLAUDE.md"
+    skills_dir: ".claude/skills"
+  - name: "copilot"
+    instructions_dir: ".github/instructions"
+    prompts_dir: ".github/prompts"
+  - name: "gemini"
+    output_file: "GEMINI.md"
+
+# Context limits & Optimization
+context_limits:
+  max_tokens_per_rule: 400
+  max_characters_per_rule: 1800
+  auto_decompose: true
+`
+				_ = os.WriteFile("parkour.yaml", []byte(cfgContent), 0644)
+				fmt.Println("   • Created parkour.yaml (Project configuration)")
+			}
+
+			fmt.Println("✅ agent-parkour initialized successfully! Start vaulting across agents.")
 			return nil
 		},
 	}

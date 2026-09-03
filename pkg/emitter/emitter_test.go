@@ -8,7 +8,7 @@ import (
 )
 
 func TestSafeWriteFileAndBackup(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "token-hop-backup-test-*")
+	tmpDir, err := os.MkdirTemp("", "parkour-backup-test-*")
 	if err != nil {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}

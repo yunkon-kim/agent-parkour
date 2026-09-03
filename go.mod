@@ -1,4 +1,4 @@
-module github.com/yunkon-kim/token-hop
+module github.com/yunkon-kim/agent-parkour
 
 go 1.21.4
 

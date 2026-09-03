@@ -45,7 +45,7 @@ func FormatSpecMatrix(matrix *SpecMatrixReport, format OutputFormat) string {
 func formatCLITable(report *MappingReport) string {
 	var sb strings.Builder
 
-	sb.WriteString("🔍 [token-hop describe] Cross-Agent Configuration Mapping Plan\n")
+	sb.WriteString("🔍 [agent-parkour describe] Cross-Agent Configuration Mapping Plan\n")
 	sb.WriteString(fmt.Sprintf("   • Source Platform : %s (%s)\n", strings.ToUpper(report.FromPlatform), report.SourceDir))
 	sb.WriteString(fmt.Sprintf("   • Target Platform : %s (%s)\n", strings.ToUpper(report.ToPlatform), report.OutputDir))
 	sb.WriteString(fmt.Sprintf("   • Detected Files  : %d document(s)\n\n", report.TotalSourceFiles))
@@ -129,7 +129,7 @@ func formatCLITable(report *MappingReport) string {
 
 	// Notes & Next Steps
 	sb.WriteString("\n💡 Note: Estimated token counts (~Tokens) are calculated locally without external API calls or cost, indicating baseline prompt context overhead per conversation turn.\n\n")
-	sb.WriteString(fmt.Sprintf("👉 Next Step:\n   Run 'thop convert --from %s --to %s' to execute this transformation.\n", report.FromPlatform, report.ToPlatform))
+	sb.WriteString(fmt.Sprintf("👉 Next Step:\n   Run 'parkour convert --from %s --to %s' to execute this transformation.\n", report.FromPlatform, report.ToPlatform))
 
 	return sb.String()
 }
@@ -168,7 +168,7 @@ func formatMarkdownTable(report *MappingReport) string {
 func formatSpecMatrixCLITable(matrix *SpecMatrixReport) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("📋 [token-hop Specification Matrix] %s  ──►  %s\n\n",
+	sb.WriteString(fmt.Sprintf("📋 [agent-parkour Specification Matrix] %s  ──►  %s\n\n",
 		strings.ToUpper(matrix.FromPlatform), strings.ToUpper(matrix.ToPlatform)))
 
 	headers := []string{"Entity", fmt.Sprintf("%s Location", matrix.FromPlatform), fmt.Sprintf("%s Location", matrix.ToPlatform), "Target Behavior"}

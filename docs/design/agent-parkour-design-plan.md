@@ -1,8 +1,8 @@
-# Token-Hop Engine: Cross-Agent Prompt Compiler Architecture & Plan
+# Agent-Parkour Engine: Cross-Agent Prompt Compiler Architecture & Plan
 **AI 개발 환경 간 설정 이질성 해소를 위한 크로스 에이전트 프롬프트 컴파일러 설계 및 오픈소스 기획**
 
-- **프로젝트명**: `token-hop` (구 `polyagent`)
-- **CLI 명칭**: `token-hop` (약칭: `thop`)
+- **프로젝트명**: `agent-parkour` (구 `token-hop`)
+- **CLI 명칭**: `parkour` (약칭: `pk`)
 - **버전**: v0.1.0-draft
 - **작성일**: 2026-09-01
 - **저자**: Yunkon Kim

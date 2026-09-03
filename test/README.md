@@ -1,6 +1,6 @@
-# Token-Hop Test Suite & Fixtures
+# Agent-Parkour Test Suite & Fixtures
 
-이 디렉터리는 `token-hop` (`thop`)의 단위 테스트 및 실 프로젝트 대상 변환 검증 픽스처(Fixture)를 포함합니다.
+이 디렉터리는 `agent-parkour` (`parkour` / `pk`)의 단위 테스트 및 실 프로젝트 대상 변환 검증 픽스처(Fixture)를 포함합니다.
 
 ## 디렉터리 구성
 
@@ -22,6 +22,7 @@ go test -v ./...
 go test -v -run TestCmBeetleCopilotToAntigravityConversion ./test
 
 # CLI 바이너리로 직접 변환 테스트
-./bin/thop convert --from copilot --to antigravity --input test/fixtures/cm-beetle/.github --output /tmp/test-antigravity
-./bin/thop audit --input test/fixtures/cm-beetle/.github
+./bin/parkour convert --from copilot --to antigravity --input test/fixtures/cm-beetle/.github --output /tmp/test-antigravity
+./bin/parkour audit --input test/fixtures/cm-beetle/.github
 ```
+

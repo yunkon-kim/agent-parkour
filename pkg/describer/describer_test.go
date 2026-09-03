@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yunkon-kim/token-hop/pkg/ir"
+	"github.com/yunkon-kim/agent-parkour/pkg/ir"
 )
 
 func TestMappingAnalyzer_Analyze(t *testing.T) {
@@ -85,7 +85,7 @@ func TestFormatters(t *testing.T) {
 
 	// Test Table Formatter
 	tableOut := FormatMappingReport(report, FormatTable)
-	if !strings.Contains(tableOut, "token-hop describe") {
+	if !strings.Contains(tableOut, "agent-parkour describe") {
 		t.Errorf("table output missing header: %s", tableOut)
 	}
 	if !strings.Contains(tableOut, "Estimated token counts") {

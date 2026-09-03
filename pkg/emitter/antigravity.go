@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/yunkon-kim/token-hop/pkg/ir"
+	"github.com/yunkon-kim/agent-parkour/pkg/ir"
 	"gopkg.in/yaml.v3"
 )
 
@@ -160,7 +160,7 @@ func (e *AntigravityEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 	for _, doc := range docs {
 		agentsContent.WriteString(fmt.Sprintf("- **%s** (`%s`): %s\n", doc.Metadata.Name, doc.Metadata.Type, doc.Metadata.Description))
 	}
-	agentsContent.WriteString("\n*Compiled and synchronized by [token-hop](https://github.com/yunkon-kim/token-hop)*\n")
+	agentsContent.WriteString("\n*Compiled and synchronized by [agent-parkour](https://github.com/yunkon-kim/agent-parkour)*\n")
 
 	backup, err := SafeWriteFile(agentsMdPath, []byte(agentsContent.String()))
 	if err != nil {

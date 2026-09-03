@@ -3,7 +3,7 @@ package describer
 import (
 	"strings"
 
-	"github.com/yunkon-kim/token-hop/pkg/ir"
+	"github.com/yunkon-kim/agent-parkour/pkg/ir"
 )
 
 var platformSpecs = map[string]PlatformSpec{

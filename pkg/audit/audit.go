@@ -3,7 +3,7 @@ package audit
 import (
 	"strings"
 
-	"github.com/yunkon-kim/token-hop/pkg/ir"
+	"github.com/yunkon-kim/agent-parkour/pkg/ir"
 )
 
 // Item contains token and character metrics for an individual instruction document

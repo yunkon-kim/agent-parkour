@@ -23,15 +23,24 @@ func LoadConfig() *Config {
 	// 1. Try to load from .env file in current directory or parent directory
 	loadDotEnv(".env")
 
-	enabledStr := os.Getenv("TOKEN_HOP_AI_ENABLED")
+	enabledStr := os.Getenv("PARKOUR_AI_ENABLED")
+	if enabledStr == "" {
+		enabledStr = os.Getenv("TOKEN_HOP_AI_ENABLED")
+	}
 	enabled := strings.ToLower(enabledStr) == "true" || enabledStr == "1"
 
-	provider := strings.ToLower(strings.TrimSpace(os.Getenv("TOKEN_HOP_AI_PROVIDER")))
+	provider := strings.ToLower(strings.TrimSpace(os.Getenv("PARKOUR_AI_PROVIDER")))
+	if provider == "" {
+		provider = strings.ToLower(strings.TrimSpace(os.Getenv("TOKEN_HOP_AI_PROVIDER")))
+	}
 	if provider == "" {
 		provider = "gemini"
 	}
 
-	model := strings.TrimSpace(os.Getenv("TOKEN_HOP_AI_MODEL"))
+	model := strings.TrimSpace(os.Getenv("PARKOUR_AI_MODEL"))
+	if model == "" {
+		model = strings.TrimSpace(os.Getenv("TOKEN_HOP_AI_MODEL"))
+	}
 
 	cfg := &Config{
 		Enabled:   enabled,

@@ -1,6 +1,6 @@
 package refiner
 
-import "github.com/yunkon-kim/token-hop/pkg/ir"
+import "github.com/yunkon-kim/agent-parkour/pkg/ir"
 
 // FileItem represents an individual converted file included in a refinement prompt
 type FileItem struct {

@@ -2,16 +2,16 @@
 set -e
 
 # ==============================================================================
-# Token-Hop (thop) Installer Script
+# Agent-Parkour (parkour / pk) Installer Script
 # ==============================================================================
 
 OWNER="yunkon-kim"
-REPO="token-hop"
-BINARY="token-hop"
-ALIAS="thop"
+REPO="agent-parkour"
+BINARY="parkour"
+ALIAS="pk"
 INSTALL_DIR="/usr/local/bin"
 
-echo "🦘 Installing token-hop (thop)..."
+echo "🏃 Installing agent-parkour (parkour / pk)..."
 
 # Check OS and Architecture
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
@@ -34,7 +34,7 @@ fi
 # If go is installed, try go install first
 if command -v go >/dev/null 2>&1; then
   echo "📦 Installing via Go..."
-  GOBIN="$INSTALL_DIR" go install "github.com/${OWNER}/${REPO}/cmd/token-hop@latest"
+  GOBIN="$INSTALL_DIR" go install "github.com/${OWNER}/${REPO}/cmd/parkour@latest"
 else
   # Fetch latest release binary from GitHub
   echo "📥 Downloading latest binary from GitHub Releases..."
@@ -43,11 +43,17 @@ else
   chmod +x "${INSTALL_DIR}/${BINARY}"
 fi
 
-# Create symlink for 'thop'
+# Create symlinks for 'pk', 'agent-parkour', and legacy 'thop'
 ln -sf "${INSTALL_DIR}/${BINARY}" "${INSTALL_DIR}/${ALIAS}"
+ln -sf "${INSTALL_DIR}/${BINARY}" "${INSTALL_DIR}/agent-parkour"
+ln -sf "${INSTALL_DIR}/${BINARY}" "${INSTALL_DIR}/thop"
 
 echo ""
-echo "✅ token-hop and 'thop' alias installed successfully to ${INSTALL_DIR}!"
+echo "✅ agent-parkour installed successfully to ${INSTALL_DIR}!"
+echo "   • Main binary  : ${INSTALL_DIR}/parkour"
+echo "   • Fast alias   : ${INSTALL_DIR}/pk"
+echo "   • Legacy alias : ${INSTALL_DIR}/thop"
 echo ""
 echo "👉 Try running:"
-echo "   thop --help"
+echo "   parkour --help"
+echo "   pk --help"

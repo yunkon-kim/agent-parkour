@@ -7,17 +7,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/yunkon-kim/token-hop/pkg/ai"
-	"github.com/yunkon-kim/token-hop/pkg/audit"
-	"github.com/yunkon-kim/token-hop/pkg/describer"
-	"github.com/yunkon-kim/token-hop/pkg/emitter"
-	"github.com/yunkon-kim/token-hop/pkg/ir"
-	"github.com/yunkon-kim/token-hop/pkg/parser"
-	"github.com/yunkon-kim/token-hop/pkg/refiner"
+	"github.com/yunkon-kim/agent-parkour/pkg/ai"
+	"github.com/yunkon-kim/agent-parkour/pkg/audit"
+	"github.com/yunkon-kim/agent-parkour/pkg/describer"
+	"github.com/yunkon-kim/agent-parkour/pkg/emitter"
+	"github.com/yunkon-kim/agent-parkour/pkg/ir"
+	"github.com/yunkon-kim/agent-parkour/pkg/parser"
+	"github.com/yunkon-kim/agent-parkour/pkg/refiner"
 	"gopkg.in/yaml.v3"
 )
 
-// Config represents token-hop.yaml configuration
+// Config represents parkour.yaml, agent-parkour.yaml, or legacy token-hop.yaml configuration
 type Config struct {
 	Version string `yaml:"version"`
 	SSOT    string `yaml:"ssot"`
@@ -58,8 +58,24 @@ func (e *Engine) SetAIProvider(provider ai.AIProvider) {
 	e.AIProvider = provider
 }
 
-// LoadConfig loads token-hop.yaml or returns defaults
+// LoadConfig loads parkour.yaml, agent-parkour.yaml, or legacy token-hop.yaml, or returns defaults
 func LoadConfig(configPath string) (*Config, error) {
+	if configPath == "" {
+		candidates := []string{"parkour.yaml", "agent-parkour.yaml", "token-hop.yaml"}
+		for _, cand := range candidates {
+			if _, err := os.Stat(cand); err == nil {
+				configPath = cand
+				break
+			}
+		}
+	}
+	if configPath == "" {
+		return &Config{
+			Version: "1.0",
+			SSOT:    "AGENTS.md",
+		}, nil
+	}
+
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return &Config{

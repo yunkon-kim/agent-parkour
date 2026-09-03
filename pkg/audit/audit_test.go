@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yunkon-kim/token-hop/pkg/ir"
+	"github.com/yunkon-kim/agent-parkour/pkg/ir"
 )
 
 func TestEstimateTokens(t *testing.T) {

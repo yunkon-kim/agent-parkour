@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yunkon-kim/token-hop/pkg/ir"
+	"github.com/yunkon-kim/agent-parkour/pkg/ir"
 )
 
 func TestGenerator_GenerateFromDocs(t *testing.T) {

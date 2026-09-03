@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yunkon-kim/token-hop/pkg/audit"
-	"github.com/yunkon-kim/token-hop/pkg/emitter"
-	"github.com/yunkon-kim/token-hop/pkg/parser"
+	"github.com/yunkon-kim/agent-parkour/pkg/audit"
+	"github.com/yunkon-kim/agent-parkour/pkg/emitter"
+	"github.com/yunkon-kim/agent-parkour/pkg/parser"
 )
 
 func TestCmBeetleCopilotToAntigravityConversion(t *testing.T) {
@@ -64,7 +64,7 @@ func TestCmBeetleCopilotToAntigravityConversion(t *testing.T) {
 	}
 
 	// 2. Emit to Antigravity format in temporary directory
-	tempOutDir, err := os.MkdirTemp("", "token-hop-antigravity-*")
+	tempOutDir, err := os.MkdirTemp("", "parkour-antigravity-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestCmBeetleCopilotToCursorConversion(t *testing.T) {
 		t.Fatalf("Failed to parse: %v", err)
 	}
 
-	tempOutDir, err := os.MkdirTemp("", "token-hop-cursor-*")
+	tempOutDir, err := os.MkdirTemp("", "parkour-cursor-*")
 	if err != nil {
 		t.Fatalf("Failed to create temp dir: %v", err)
 	}

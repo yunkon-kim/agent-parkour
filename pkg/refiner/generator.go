@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/yunkon-kim/token-hop/pkg/audit"
-	"github.com/yunkon-kim/token-hop/pkg/ir"
+	"github.com/yunkon-kim/agent-parkour/pkg/audit"
+	"github.com/yunkon-kim/agent-parkour/pkg/ir"
 )
 
 // Generator builds target-specific AI refinement prompts

@@ -42,10 +42,10 @@ Use CSS variables and modern typography.
 }
 
 func TestConfigLoader(t *testing.T) {
-	os.Setenv("TOKEN_HOP_AI_ENABLED", "true")
-	os.Setenv("TOKEN_HOP_AI_PROVIDER", "gemini")
+	os.Setenv("PARKOUR_AI_ENABLED", "true")
+	os.Setenv("PARKOUR_AI_PROVIDER", "gemini")
 	os.Setenv("GEMINI_API_KEY", "test-key-123")
-	os.Setenv("TOKEN_HOP_AI_MODEL", "gemini-2.5-pro")
+	os.Setenv("PARKOUR_AI_MODEL", "gemini-2.5-pro")
 
 	cfg := LoadConfig()
 	if !cfg.Enabled {

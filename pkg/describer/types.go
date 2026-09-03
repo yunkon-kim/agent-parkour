@@ -1,7 +1,7 @@
 package describer
 
 import (
-	"github.com/yunkon-kim/token-hop/pkg/ir"
+	"github.com/yunkon-kim/agent-parkour/pkg/ir"
 )
 
 // OutputFormat defines the format for rendering description output
