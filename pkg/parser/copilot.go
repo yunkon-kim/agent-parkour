@@ -21,9 +21,63 @@ type CopilotPromptFrontmatter struct {
 
 // CopilotInstructionFrontmatter represents YAML frontmatter in .github/instructions/*.instructions.md
 type CopilotInstructionFrontmatter struct {
-	ApplyTo      string   `yaml:"applyTo"`
-	ExcludeAgent []string `yaml:"excludeAgent"`
-	Description  string   `yaml:"description"`
+	ApplyTo      interface{} `yaml:"applyTo"`
+	ExcludeAgent []string    `yaml:"excludeAgent"`
+	Description  string      `yaml:"description"`
+}
+
+func parseApplyTo(raw interface{}) []string {
+	if raw == nil {
+		return nil
+	}
+	switch v := raw.(type) {
+	case string:
+		trimmed := strings.TrimSpace(v)
+		if trimmed != "" {
+			return []string{trimmed}
+		}
+	case []interface{}:
+		var result []string
+		for _, item := range v {
+			if s, ok := item.(string); ok {
+				s = strings.TrimSpace(s)
+				if s != "" {
+					result = append(result, s)
+				}
+			}
+		}
+		return result
+	case []string:
+		var result []string
+		for _, s := range v {
+			s = strings.TrimSpace(s)
+			if s != "" {
+				result = append(result, s)
+			}
+		}
+		return result
+	}
+	return nil
+}
+
+func inferGlobFromID(id string) []string {
+	knownExts := map[string]string{
+		"go":       "**/*.go",
+		"ts":       "**/*.ts",
+		"js":       "**/*.js",
+		"py":       "**/*.py",
+		"java":     "**/*.java",
+		"rust":     "**/*.rs",
+		"markdown": "**/*.md",
+		"md":       "**/*.md",
+		"html":     "**/*.html",
+		"css":      "**/*.css",
+	}
+	lower := strings.ToLower(id)
+	if glob, ok := knownExts[lower]; ok {
+		return []string{glob}
+	}
+	return []string{id + "/**"}
 }
 
 // ParseCopilotDirectory parses a .github/ directory containing copilot-instructions.md, instructions/, prompts/, agents/, or a single file
@@ -51,12 +105,14 @@ func ParseCopilotDirectory(sourcePath string) ([]*ir.UADocument, error) {
 			id = strings.TrimSuffix(id, ".md")
 			var fm CopilotPromptFrontmatter
 			body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
-			doc := ir.NewDocument("workflow-"+id, ir.TypeWorkflow, formatTitle(id))
-			if fm.Name != "" {
-				doc.Metadata.Name = fm.Name
+			name := fm.Name
+			if name == "" {
+				name = formatTitle(id)
 			}
+			doc := ir.NewDocument("prompt-"+id, ir.TypePrompt, name)
 			doc.Metadata.Description = fm.Description
 			doc.Activation.Mode = ir.ModeOnDemand
+			doc.Activation.SlashCommand = id
 			doc.Payload.MarkdownBody = body
 			doc.Payload.RawSource = sourcePath
 			return []*ir.UADocument{doc}, nil
@@ -69,12 +125,12 @@ func ParseCopilotDirectory(sourcePath string) ([]*ir.UADocument, error) {
 		body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
 		doc := ir.NewDocument("rule-"+id, ir.TypeRule, formatTitle(id))
 		doc.Metadata.Description = fm.Description
-		if fm.ApplyTo != "" {
-			doc.Activation.Mode = ir.ModeGlob
-			doc.Activation.Globs = []string{fm.ApplyTo}
-		} else {
-			doc.Activation.Mode = ir.ModeAlwaysOn
+		globs := parseApplyTo(fm.ApplyTo)
+		if len(globs) == 0 {
+			globs = inferGlobFromID(id)
 		}
+		doc.Activation.Mode = ir.ModeGlob
+		doc.Activation.Globs = globs
 		doc.Payload.MarkdownBody = body
 		doc.Payload.RawSource = sourcePath
 		return []*ir.UADocument{doc}, nil
@@ -83,91 +139,119 @@ func ParseCopilotDirectory(sourcePath string) ([]*ir.UADocument, error) {
 	var docs []*ir.UADocument
 	githubDir := sourcePath
 
+	// If sourcePath contains .github subdirectory, descend into it
+	if child := filepath.Join(sourcePath, ".github"); func() bool {
+		childFi, childErr := os.Stat(child)
+		return childErr == nil && childFi.IsDir()
+	}() {
+		githubDir = child
+	}
+
+	findSubDir := func(name string) string {
+		p1 := filepath.Join(githubDir, name)
+		if sfi, serr := os.Stat(p1); serr == nil && sfi.IsDir() {
+			return p1
+		}
+		p2 := filepath.Join(sourcePath, name)
+		if sfi, serr := os.Stat(p2); serr == nil && sfi.IsDir() {
+			return p2
+		}
+		return ""
+	}
+
 	// 1. Check copilot-instructions.md (Project Root Instruction)
-	copilotInstPath := filepath.Join(githubDir, "copilot-instructions.md")
-	if data, err := os.ReadFile(copilotInstPath); err == nil {
-		doc := ir.NewDocument("instruction-global", ir.TypeInstruction, "Global Project Instructions")
-		doc.Metadata.Description = "Global instructions and architecture rules imported from GitHub Copilot"
-		doc.Activation.Mode = ir.ModeAlwaysOn
-		doc.Payload.MarkdownBody = string(data)
-		doc.Payload.RawSource = copilotInstPath
-		docs = append(docs, doc)
+	copilotInstCandidates := []string{
+		filepath.Join(githubDir, "copilot-instructions.md"),
+		filepath.Join(sourcePath, "copilot-instructions.md"),
+	}
+	for _, instPath := range copilotInstCandidates {
+		if data, readErr := os.ReadFile(instPath); readErr == nil {
+			doc := ir.NewDocument("instruction-global", ir.TypeInstruction, "Global Project Instructions")
+			doc.Metadata.Description = "Global instructions and architecture rules imported from GitHub Copilot"
+			doc.Activation.Mode = ir.ModeAlwaysOn
+			doc.Payload.MarkdownBody = string(data)
+			doc.Payload.RawSource = instPath
+			docs = append(docs, doc)
+			break
+		}
 	}
 
 	// 2. Parse instructions/ (*.instructions.md or *.md)
-	instDir := filepath.Join(githubDir, "instructions")
-	if entries, err := os.ReadDir(instDir); err == nil {
-		for _, entry := range entries {
-			if entry.IsDir() || (!strings.HasSuffix(entry.Name(), ".md") && !strings.HasSuffix(entry.Name(), ".instructions.md")) {
-				continue
-			}
-			filePath := filepath.Join(instDir, entry.Name())
-			data, err := os.ReadFile(filePath)
-			if err != nil {
-				continue
-			}
+	if instDir := findSubDir("instructions"); instDir != "" {
+		if entries, readDirErr := os.ReadDir(instDir); readDirErr == nil {
+			for _, entry := range entries {
+				if entry.IsDir() || (!strings.HasSuffix(entry.Name(), ".md") && !strings.HasSuffix(entry.Name(), ".instructions.md")) {
+					continue
+				}
+				filePath := filepath.Join(instDir, entry.Name())
+				data, readErr := os.ReadFile(filePath)
+				if readErr != nil {
+					continue
+				}
 
-			id := strings.TrimSuffix(entry.Name(), ".instructions.md")
-			id = strings.TrimSuffix(id, ".md")
+				id := strings.TrimSuffix(entry.Name(), ".instructions.md")
+				id = strings.TrimSuffix(id, ".md")
 
-			var fm CopilotInstructionFrontmatter
-			body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
+				var fm CopilotInstructionFrontmatter
+				body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
 
-			doc := ir.NewDocument("rule-"+id, ir.TypeRule, formatTitle(id))
-			doc.Metadata.Description = fm.Description
-			if doc.Metadata.Description == "" {
-				doc.Metadata.Description = fmt.Sprintf("Coding rules and conventions for %s", id)
-			}
+				doc := ir.NewDocument("rule-"+id, ir.TypeRule, formatTitle(id))
+				doc.Metadata.Description = fm.Description
+				if doc.Metadata.Description == "" {
+					doc.Metadata.Description = fmt.Sprintf("Coding rules and conventions for %s", id)
+				}
 
-			if fm.ApplyTo != "" {
+				globs := parseApplyTo(fm.ApplyTo)
+				if len(globs) == 0 {
+					globs = inferGlobFromID(id)
+				}
 				doc.Activation.Mode = ir.ModeGlob
-				doc.Activation.Globs = []string{fm.ApplyTo}
-			} else {
-				doc.Activation.Mode = ir.ModeAlwaysOn
-			}
+				doc.Activation.Globs = globs
 
-			doc.Payload.MarkdownBody = body
-			doc.Payload.RawSource = filePath
-			docs = append(docs, doc)
+				doc.Payload.MarkdownBody = body
+				doc.Payload.RawSource = filePath
+				docs = append(docs, doc)
+			}
 		}
 	}
 
 	// 3. Parse prompts/ (*.prompt.md or *.md)
-	promptsDir := filepath.Join(githubDir, "prompts")
-	if entries, err := os.ReadDir(promptsDir); err == nil {
-		for _, entry := range entries {
-			if entry.IsDir() || (!strings.HasSuffix(entry.Name(), ".md") && !strings.HasSuffix(entry.Name(), ".prompt.md")) {
-				continue
+	if promptsDir := findSubDir("prompts"); promptsDir != "" {
+		if entries, readDirErr := os.ReadDir(promptsDir); readDirErr == nil {
+			for _, entry := range entries {
+				if entry.IsDir() || (!strings.HasSuffix(entry.Name(), ".md") && !strings.HasSuffix(entry.Name(), ".prompt.md")) {
+					continue
+				}
+				filePath := filepath.Join(promptsDir, entry.Name())
+				data, readErr := os.ReadFile(filePath)
+				if readErr != nil {
+					continue
+				}
+
+				id := strings.TrimSuffix(entry.Name(), ".prompt.md")
+				id = strings.TrimSuffix(id, ".md")
+
+				var fm CopilotPromptFrontmatter
+				body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
+
+				name := fm.Name
+				if name == "" {
+					name = formatTitle(id)
+				}
+
+				doc := ir.NewDocument("prompt-"+id, ir.TypePrompt, name)
+				doc.Metadata.Description = fm.Description
+				doc.Activation.Mode = ir.ModeOnDemand
+				doc.Activation.SlashCommand = id
+
+				if fm.ArgumentHint != "" {
+					doc.Metadata.Tags = append(doc.Metadata.Tags, "hint:"+fm.ArgumentHint)
+				}
+
+				doc.Payload.MarkdownBody = body
+				doc.Payload.RawSource = filePath
+				docs = append(docs, doc)
 			}
-			filePath := filepath.Join(promptsDir, entry.Name())
-			data, err := os.ReadFile(filePath)
-			if err != nil {
-				continue
-			}
-
-			id := strings.TrimSuffix(entry.Name(), ".prompt.md")
-			id = strings.TrimSuffix(id, ".md")
-
-			var fm CopilotPromptFrontmatter
-			body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
-
-			name := fm.Name
-			if name == "" {
-				name = formatTitle(id)
-			}
-
-			doc := ir.NewDocument("workflow-"+id, ir.TypeWorkflow, name)
-			doc.Metadata.Description = fm.Description
-			doc.Activation.Mode = ir.ModeOnDemand
-			doc.Activation.SlashCommand = id
-
-			if fm.ArgumentHint != "" {
-				doc.Metadata.Tags = append(doc.Metadata.Tags, "hint:"+fm.ArgumentHint)
-			}
-
-			doc.Payload.MarkdownBody = body
-			doc.Payload.RawSource = filePath
-			docs = append(docs, doc)
 		}
 	}
 
@@ -196,6 +280,39 @@ func ParseCopilotDirectory(sourcePath string) ([]*ir.UADocument, error) {
 			doc.Payload.MarkdownBody = body
 			doc.Payload.RawSource = filePath
 			docs = append(docs, doc)
+		}
+	}
+
+	// 5. Parse skills/ (<name>/SKILL.md)
+	if skillsDir := findSubDir("skills"); skillsDir != "" {
+		if entries, readDirErr := os.ReadDir(skillsDir); readDirErr == nil {
+			for _, entry := range entries {
+				if !entry.IsDir() {
+					continue
+				}
+				skillFile := filepath.Join(skillsDir, entry.Name(), "SKILL.md")
+				data, readErr := os.ReadFile(skillFile)
+				if readErr != nil {
+					continue
+				}
+
+				var fm struct {
+					Name        string `yaml:"name"`
+					Description string `yaml:"description"`
+				}
+				body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
+				name := fm.Name
+				if name == "" {
+					name = entry.Name()
+				}
+
+				doc := ir.NewDocument("skill-"+entry.Name(), ir.TypeSkill, name)
+				doc.Metadata.Description = fm.Description
+				doc.Activation.Mode = ir.ModeOnDemand
+				doc.Payload.MarkdownBody = body
+				doc.Payload.RawSource = skillFile
+				docs = append(docs, doc)
+			}
 		}
 	}
 

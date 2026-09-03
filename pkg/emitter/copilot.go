@@ -99,6 +99,65 @@ func (e *CopilotEmitter) Emit(docs []*ir.UADocument) ([]string, error) {
 				fmt.Printf("      📦 Backed up existing file -> %s\n", backup)
 			}
 			writtenFiles = append(writtenFiles, filePath)
+
+		case ir.TypeSkill:
+			skillName := SanitizeFileName(doc.Metadata.ID)
+			skillName = strings.TrimPrefix(skillName, "skill-")
+			skillName = strings.TrimPrefix(skillName, "agent-")
+
+			targetSkillDir := filepath.Join(githubDir, "skills", skillName)
+			skillFilePath := filepath.Join(targetSkillDir, "SKILL.md")
+
+			fm := map[string]interface{}{
+				"name":        skillName,
+				"description": doc.Metadata.Description,
+			}
+			if fm["description"] == "" {
+				fm["description"] = fmt.Sprintf("Skill package for %s", doc.Metadata.Name)
+			}
+
+			fmBytes, _ := yaml.Marshal(fm)
+			var out strings.Builder
+			out.WriteString("---\n")
+			out.WriteString(string(fmBytes))
+			out.WriteString("---\n\n")
+			out.WriteString(RenderMarkdownWithTitle(doc.Metadata.Name, doc.Payload.MarkdownBody))
+
+			backup, err := SafeWriteFile(skillFilePath, []byte(out.String()))
+			if err != nil {
+				return writtenFiles, err
+			}
+			if backup != "" {
+				fmt.Printf("      📦 Backed up existing file -> %s\n", backup)
+			}
+			writtenFiles = append(writtenFiles, skillFilePath)
+
+		case ir.TypeAgent:
+			id := SanitizeFileName(doc.Metadata.ID)
+			id = strings.TrimPrefix(id, "agent-")
+			agentsDir := filepath.Join(githubDir, "agents")
+			filePath := filepath.Join(agentsDir, id+".agent.md")
+
+			fm := map[string]interface{}{
+				"name":        id,
+				"description": doc.Metadata.Description,
+			}
+			fmBytes, _ := yaml.Marshal(fm)
+			var out strings.Builder
+			out.WriteString("---\n")
+			out.WriteString(string(fmBytes))
+			out.WriteString("---\n\n")
+			out.WriteString(doc.Payload.MarkdownBody)
+			out.WriteString("\n")
+
+			backup, err := SafeWriteFile(filePath, []byte(out.String()))
+			if err != nil {
+				return writtenFiles, err
+			}
+			if backup != "" {
+				fmt.Printf("      📦 Backed up existing file -> %s\n", backup)
+			}
+			writtenFiles = append(writtenFiles, filePath)
 		}
 	}
 

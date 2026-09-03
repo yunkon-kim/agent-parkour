@@ -94,7 +94,7 @@ func TestFormatters(t *testing.T) {
 
 	// Test Markdown Formatter
 	mdOut := FormatMappingReport(report, FormatMarkdown)
-	if !strings.Contains(mdOut, "| Source File | Entity Type | Target File |") {
+	if !strings.Contains(mdOut, "| Source File | Target File | Trigger / Activation |") {
 		t.Errorf("markdown output missing table header: %s", mdOut)
 	}
 

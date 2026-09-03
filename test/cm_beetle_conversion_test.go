@@ -8,6 +8,7 @@ import (
 
 	"github.com/yunkon-kim/agent-parkour/pkg/audit"
 	"github.com/yunkon-kim/agent-parkour/pkg/emitter"
+	"github.com/yunkon-kim/agent-parkour/pkg/ir"
 	"github.com/yunkon-kim/agent-parkour/pkg/parser"
 )
 
@@ -30,7 +31,7 @@ func TestCmBeetleCopilotToAntigravityConversion(t *testing.T) {
 	t.Logf("Parsed %d documents from cm-beetle .github directory", len(docs))
 
 	// Verify key documents exist
-	var foundGlobal, foundGoRule, foundApiGuide, foundSyncTb bool
+	var foundGlobal, foundGoRule, foundApiGuide, foundSyncTb, foundUiRule bool
 	for _, doc := range docs {
 		t.Logf("  - [%s] %s (%s, Mode: %s)", doc.Metadata.Type, doc.Metadata.ID, doc.Metadata.Name, doc.Activation.Mode)
 		if doc.Metadata.ID == "instruction-global" {
@@ -42,10 +43,19 @@ func TestCmBeetleCopilotToAntigravityConversion(t *testing.T) {
 				t.Errorf("Expected rule-go to have glob '**/*.go', got %v", doc.Activation.Globs)
 			}
 		}
-		if doc.Metadata.ID == "workflow-api-guide" {
+		if doc.Metadata.ID == "rule-ui" {
+			foundUiRule = true
+			if doc.Activation.Mode != ir.ModeGlob {
+				t.Errorf("Expected rule-ui to have ModeGlob, got %s", doc.Activation.Mode)
+			}
+			if len(doc.Activation.Globs) == 0 || doc.Activation.Globs[0] != "ui/**" {
+				t.Errorf("Expected rule-ui to have glob 'ui/**', got %v", doc.Activation.Globs)
+			}
+		}
+		if doc.Metadata.ID == "prompt-api-guide" || doc.Metadata.ID == "workflow-api-guide" {
 			foundApiGuide = true
 		}
-		if doc.Metadata.ID == "workflow-sync-tb" {
+		if doc.Metadata.ID == "prompt-sync-tb" || doc.Metadata.ID == "workflow-sync-tb" {
 			foundSyncTb = true
 		}
 	}
@@ -56,11 +66,14 @@ func TestCmBeetleCopilotToAntigravityConversion(t *testing.T) {
 	if !foundGoRule {
 		t.Errorf("Expected rule-go to be parsed")
 	}
+	if !foundUiRule {
+		t.Errorf("Expected rule-ui to be parsed")
+	}
 	if !foundApiGuide {
-		t.Errorf("Expected workflow-api-guide to be parsed")
+		t.Errorf("Expected api-guide prompt to be parsed")
 	}
 	if !foundSyncTb {
-		t.Errorf("Expected workflow-sync-tb to be parsed")
+		t.Errorf("Expected sync-tb prompt to be parsed")
 	}
 
 	// 2. Emit to Antigravity format in temporary directory

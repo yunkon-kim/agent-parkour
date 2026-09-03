@@ -38,6 +38,38 @@ AI 도구별 토큰 제한(Token Limit)이나 사용량 한도(Usage Cap)라는 
 
 ---
 
+## 📊 크로스 에이전트 양방향 매핑 매트릭스 (Mapping Matrix)
+
+`agent-parkour`는 **디렉터리 경로 기반(Directory-First)** 아키텍처를 채택하여, 각 플랫폼의 네이티브 폴더 구조를 보존하면서 상호 변환을 수행합니다:
+
+| 지침 종류 (Entity) | 역할 및 성격 | Google Antigravity | GitHub Copilot | Claude Code | Cursor AI |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Instruction** | 프로젝트 전반에 상시 적용되는 전역 헌장 | `AGENTS.md`<br>*(또는 `.agents/AGENTS.md`)* | `.github/copilot-instructions.md` | `CLAUDE.md`<br>*(루트 전역)* | `.cursorrules`<br>*(또는 `base.mdc`)* |
+| **Rule** | 파일·언어 편집 시 적용되는 코딩 규칙 | `.agents/rules/*.md`<br>(`globs`) | `.github/instructions/*.md`<br>(`applyTo` 문자열/배열) | 서브디렉터리 `CLAUDE.md`<br>(디렉터리 스코프) | `.cursor/rules/*.mdc`<br>(`globs`) |
+| **Prompt** | `/<name>` 슬래시 커맨드 작업 템플릿 | `.agents/workflows/*.md` | `.github/prompts/*.prompt.md`<br>(`/<cmd>`) | `.claude/workflows/*.md`<br>(`/<cmd>`) | `.cursor/rules/*.mdc` |
+| **Workflow** | `/<name>` 슬래시 커맨드 다단계 절차 | `.agents/workflows/*.md`<br>(`/<cmd>`) | `.github/prompts/*.prompt.md` | `.claude/workflows/*.md` | `.cursor/rules/*.mdc` |
+| **Skill** | AI가 자율적으로 꺼내보는 전문 참고서/팩 | `.agents/skills/<name>/`<br>`SKILL.md` (JIT) | `.github/skills/<name>/`<br>`SKILL.md` (JIT) | `.claude/skills/<name>/`<br>`SKILL.md` (JIT) | `.cursor/rules/*.mdc`<br>(Description 기반 로딩) |
+| **Agent** | 독립 권한과 도구를 갖춘 특화 서브에이전트 | `.agents/skills/` (또는 Agent) | `.github/agents/*.agent.md` | `.claude/agents/` | `.cursor/rules/*.mdc` |
+
+---
+
+### 📖 지침 분류 체계 안내 (Classification Guide)
+
+`parkour describe` 실행 시 각 지침의 성격과 역할을 누구나 쉽게 이해할 수 있도록 명확한 가이드를 제공합니다:
+
+- **Instruction**: 프로젝트 전반에 상시 적용되는 기본 전역 헌장 (모든 턴에 기본 주입)
+- **Rule**: 특정 파일·언어 편집 시 자동으로 적용되는 코딩 제약 규칙 (파일 열람 시 자동 로드)
+- **Prompt**: `/<name>` 슬래시 커맨드로 실행하는 작업 지시 템플릿 (코드 생성, 질의 서식 등)
+- **Workflow**: `/<name>` 슬래시 커맨드로 실행하는 다단계 에이전트 작업 절차 (기획·구현·검증 루프)
+- **Skill**: AI가 복잡한 작업 시 스스로 꺼내보는 전문 참고서 겸 도구 팩 (JIT 동적 로드)
+- **Agent**: 독립적인 역할과 도구 권한을 갖춘 특화 서브에이전트 페르소나
+
+> 💡 **컨텍스트 토큰 메트릭**:
+> - **Always-On (Turn-0)**: 모든 대화 요청마다 고정으로 주입되는 기본 프롬프트 비용
+> - **On-Demand (JIT)**: 파일 편집, 슬래시 커맨드, 도구 호출 시에만 동적으로 로드되어 토큰을 아끼는 절감 영역
+
+---
+
 ## ⌨️ 빠른 시작 (Quick Start)
 
 ### 1. 설치 (Installation)
@@ -128,17 +160,6 @@ git clone https://github.com/yunkon-kim/agent-parkour.git
 cd agent-parkour
 make build && make test
 ```
-
----
-
-## 📊 변환 매핑 매트릭스 (Mapping Matrix)
-
-| 엔티티 (Entity) | UA-IR 정규화 역할 | Google Antigravity | Cursor AI | GitHub Copilot | Claude Code |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Rule** | 파일 경로/정적 제약 | `.agents/rules/*.md` | `.cursor/rules/*.mdc` | `.github/instructions/*.md` | `./CLAUDE.md` |
-| **Skill** | 온디맨드 JIT 동적 절차 | `.agents/skills/<name>/` | `.cursor/rules/*.mdc` | `.github/skills/<name>/` | `.claude/skills/` |
-| **Workflow** | 다단계 절차 및 검증 루프 | `.agents/workflows/*.md` | `@rule` 체이닝 문서 | `.github/prompts/*.md` | CLI 프롬프트 체인 |
-| **Instruction** | 전역 시스템 기본 지침 | `AGENTS.md` | `.cursor/rules/base.mdc`| `.github/copilot-instructions.md` | `CLAUDE.md` |
 
 ---
 

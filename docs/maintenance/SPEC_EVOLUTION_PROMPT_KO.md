@@ -1,11 +1,11 @@
 # Agent Specification Evolution & Target Update Prompt
-**AI Prompt Guide for Updating Agent Specifications and Adding New Target Platforms**
+**AI 코딩 에이전트 스펙 변경 및 신규 타겟 추가를 위한 AI 프롬프트 가이드**
 
-> This document is a **Spec Evolution Prompt** designed to be given to an AI agent (Antigravity, Claude, ChatGPT, etc.) whenever configuration directories, file extensions, frontmatter schemas, or token limit policies change across AI tools (Cursor, Google Antigravity, GitHub Copilot, Claude Code, etc.), or when a new AI tool is released, instructing it to safely and systematically update the `agent-parkour` codebase.
+> 이 문서는 Cursor, Google Antigravity, GitHub Copilot, Claude Code 등 AI 도구들의 **설정 디렉터리, 파일 확장자, 프론트매터 스키마, 토큰 제한 정책이 변경되거나 신규 AI 도구가 출시되었을 때**, AI 에이전트(Antigravity, Claude, ChatGPT 등)에게 전달하여 `agent-parkour` 코드를 안전하고 일관되게 최신화하도록 지시하는 **스펙 진화 프롬프트(Spec Evolution Prompt)**입니다.
 
 ---
 
-## 📋 Copy-Paste Prompt Template
+## 📋 복사하여 사용할 수 있는 프롬프트 템플릿
 
 ```markdown
 # Role: Senior Compiler & Toolchain Engineer for Agent-Parkour
@@ -14,14 +14,14 @@
 Update the `agent-parkour` codebase to support the latest specifications or new AI coding assistant environments.
 
 ## Target AI Tool / Specification Change
-- **Tool Name**: [e.g., Google Antigravity / GitHub Copilot / Claude Code / Cursor / Windsurf / Roo Code]
-- **Target Version / Year**: [e.g., 2026 / Latest]
+- **Tool Name**: [예: Google Antigravity / GitHub Copilot / Claude Code / Cursor / Windsurf / Roo Code]
+- **Target Version / Year**: [예: 2026 / Latest]
 - **Changed / New Specifications**:
-  - Config Path: [e.g., .github/skills/<name>/SKILL.md]
-  - File Extension: [e.g., .instructions.md / .prompt.md / SKILL.md / .mdc]
-  - Frontmatter Schema: [e.g., applyTo: string | array, alwaysApply: bool, globs: [], description: string]
-  - Token / Character Limit: [e.g., 6,000 characters per file, 12,000 total]
-  - Activation Mode: [e.g., AlwaysOn | Glob | ModelDecision | OnDemand]
+  - Config Path: [예: .github/skills/<name>/SKILL.md]
+  - File Extension: [예: .instructions.md / .prompt.md / SKILL.md / .mdc]
+  - Frontmatter Schema: [예: applyTo: string | array, alwaysApply: bool, globs: [], description: string]
+  - Token / Character Limit: [예: 6,000 characters per file, 12,000 total]
+  - Activation Mode: [예: AlwaysOn | Glob | ModelDecision | OnDemand]
 
 ---
 
@@ -71,22 +71,22 @@ When updating or adding support, cross-reference the official specifications bel
 
 ---
 
-## 🛠️ Tool-Specific Reference Tracker & Watch Points
+## 🛠️ 주요 도구별 최근 변경 이력 및 추적 포인트 (Reference Tracker)
 
-| Tool | Current Standard Path | Key Watch Points & Evolution Signals |
+| 도구 (Tool) | 현재 표준 경로 | 감시해야 할 변경 포인트 |
 | :--- | :--- | :--- |
-| **Google Antigravity** | `.agents/rules/*.md`<br>`.agents/workflows/*.md`<br>`.agents/skills/*/SKILL.md` | • JIT Skill metadata YAML field extensions<br>• Workflows slash command parameter specs |
-| **GitHub Copilot** | `.github/copilot-instructions.md`<br>`.github/instructions/*.md`<br>`.github/prompts/*.md`<br>`.github/skills/*/SKILL.md` | • `applyTo` YAML array (`- ui/**`) syntax<br>• Official Agent Skills (`.github/skills/`) open standard |
-| **Claude Code** | `./CLAUDE.md`<br>`.claude/skills/*/SKILL.md` | • Directory cascading lookup priority<br>• Subagent definition and MCP binding schemas |
-| **Cursor AI** | `.cursor/rules/*.mdc` | • Potential migration from `.mdc` to `.md`<br>• New fields beyond `alwaysApply`, `globs`, and `description` |
-| **Windsurf (Codeium)**| `.windsurfrules`<br>`.codeium/rules/` | • Global / workspace rule specifications<br>• Cascade agent instruction schema |
-| **Roo Code / Cline** | `.roomodes`<br>`.clinerules` | • JSON/YAML Custom Modes schema updates<br>• Allowed tools binding formats |
+| **Google Antigravity** | `.agents/rules/*.md`<br>`.agents/workflows/*.md`<br>`.agents/skills/*/SKILL.md` | • JIT Skill 메타데이터 YAML 필드 확장<br>• Workflows 슬래시 커맨드 파라미터 규격 |
+| **GitHub Copilot** | `.github/copilot-instructions.md`<br>`.github/instructions/*.md`<br>`.github/prompts/*.md`<br>`.github/skills/*/SKILL.md` | • `applyTo` 다중 Glob 배열(`- ui/**`) 지원<br>• Agent Skills (`.github/skills/`) 표준 규격 |
+| **Claude Code** | `./CLAUDE.md`<br>`.claude/skills/*/SKILL.md` | • 디렉터리 캐스케이딩 탐색 우선순위<br>• 서브에이전트 정의 및 MCP 바인딩 구조 |
+| **Cursor AI** | `.cursor/rules/*.mdc` | • `.mdc` 확장자의 순수 `.md` 변경 가능성<br>• `alwaysApply`, `globs`, `description` 외 신규 필드 |
+| **Windsurf (Codeium)**| `.windsurfrules`<br>`.codeium/rules/` | • 윈드서프 글로벌/워크스페이스 룰 규격<br>• Cascade 에이전트 지침 스키마 |
+| **Roo Code / Cline** | `.roomodes`<br>`.clinerules` | • JSON/YAML 기반 Custom Modes 스키마 변경<br>• 도구 권한(Allowed Tools) 바인딩 형식 |
 
 ---
 
-## 🌐 Official Documentation Links
+## 🌐 공식 레퍼런스 및 스펙 문서 링크 (Official Documentation Links)
 
-Always verify against the latest official documentation when updating parsers or emitters:
+스펙 업데이트 및 파서/생성기 변경 시 항상 아래 공식 문서의 최신 버전을 대조하여 작업하십시오.
 
 1. **Google Antigravity / Gemini Code Assist**:
    - [Google Cloud Gemini Code Assist Documentation](https://cloud.google.com/gemini/docs/codeassist)

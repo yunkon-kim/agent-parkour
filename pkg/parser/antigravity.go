@@ -91,92 +91,135 @@ func ParseAntigravityDirectory(baseDir string) ([]*ir.UADocument, error) {
 
 	var docs []*ir.UADocument
 
-	// 1. Check AGENTS.md in baseDir
-	agentsMdPath := filepath.Join(baseDir, "AGENTS.md")
-	if data, err := os.ReadFile(agentsMdPath); err == nil {
-		doc := ir.NewDocument("instruction-agents-ssot", ir.TypeInstruction, "Master Project SSOT")
-		doc.Metadata.Description = "Single Source of Truth instructions"
-		doc.Activation.Mode = ir.ModeAlwaysOn
-		doc.Payload.MarkdownBody = string(data)
-		doc.Payload.RawSource = agentsMdPath
-		docs = append(docs, doc)
+	// Resolve agents directory if baseDir contains .agents subdirectory
+	agentsDir := baseDir
+	if child := filepath.Join(baseDir, ".agents"); func() bool {
+		childFi, childErr := os.Stat(child)
+		return childErr == nil && childFi.IsDir()
+	}() {
+		agentsDir = child
 	}
 
-	// 2. Parse .agents/rules/
-	rulesDir := filepath.Join(baseDir, ".agents", "rules")
-	if entries, err := os.ReadDir(rulesDir); err == nil {
-		for _, entry := range entries {
-			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
-				continue
-			}
-			filePath := filepath.Join(rulesDir, entry.Name())
-			data, err := os.ReadFile(filePath)
-			if err != nil {
-				continue
-			}
+	findSubDir := func(name string) string {
+		p1 := filepath.Join(agentsDir, name)
+		if sfi, serr := os.Stat(p1); serr == nil && sfi.IsDir() {
+			return p1
+		}
+		p2 := filepath.Join(baseDir, name)
+		if sfi, serr := os.Stat(p2); serr == nil && sfi.IsDir() {
+			return p2
+		}
+		return ""
+	}
 
-			id := strings.TrimSuffix(entry.Name(), ".md")
-			var fm AntigravityRuleFrontmatter
-			body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
-
-			doc := ir.NewDocument("rule-"+id, ir.TypeRule, formatTitle(id))
-			doc.Metadata.Description = fm.Description
-			if len(fm.Globs) > 0 {
-				doc.Activation.Mode = ir.ModeGlob
-				doc.Activation.Globs = fm.Globs
-			} else {
-				doc.Activation.Mode = ir.ModeAlwaysOn
-			}
-			doc.Payload.MarkdownBody = body
-			doc.Payload.RawSource = filePath
+	// 1. Check AGENTS.md / GEMINI.md in baseDir or agentsDir
+	agentsMdCandidates := []string{
+		filepath.Join(baseDir, "AGENTS.md"),
+		filepath.Join(agentsDir, "AGENTS.md"),
+		filepath.Join(baseDir, "GEMINI.md"),
+		filepath.Join(agentsDir, "GEMINI.md"),
+	}
+	for _, candPath := range agentsMdCandidates {
+		if data, readErr := os.ReadFile(candPath); readErr == nil {
+			doc := ir.NewDocument("instruction-agents-ssot", ir.TypeInstruction, "Master Project SSOT")
+			doc.Metadata.Description = "Single Source of Truth instructions"
+			doc.Activation.Mode = ir.ModeAlwaysOn
+			doc.Payload.MarkdownBody = string(data)
+			doc.Payload.RawSource = candPath
 			docs = append(docs, doc)
+			break
 		}
 	}
 
-	// 3. Parse .agents/workflows/
-	workflowsDir := filepath.Join(baseDir, ".agents", "workflows")
-	if entries, err := os.ReadDir(workflowsDir); err == nil {
-		for _, entry := range entries {
-			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
-				continue
-			}
-			filePath := filepath.Join(workflowsDir, entry.Name())
-			data, err := os.ReadFile(filePath)
-			if err != nil {
-				continue
-			}
-
-			id := strings.TrimSuffix(entry.Name(), ".md")
-			fmData, body, _ := SplitFrontmatter(string(data))
-
-			doc := ir.NewDocument("workflow-"+id, ir.TypeWorkflow, formatTitle(id))
-			if desc, ok := fmData["description"].(string); ok {
-				doc.Metadata.Description = desc
-			}
-			doc.Activation.Mode = ir.ModeOnDemand
-			doc.Activation.SlashCommand = id
-			doc.Payload.MarkdownBody = body
-			doc.Payload.RawSource = filePath
-			docs = append(docs, doc)
-		}
-	}
-
-	// 4. Parse .agent/skills/ or .agents/skills/
-	skillsDirs := []string{
-		filepath.Join(baseDir, ".agent", "skills"),
-		filepath.Join(baseDir, ".agents", "skills"),
-	}
-	for _, sDir := range skillsDirs {
-		if entries, err := os.ReadDir(sDir); err == nil {
+	// 2. Parse rules/ (*.md)
+	if rulesDir := findSubDir("rules"); rulesDir != "" {
+		if entries, readDirErr := os.ReadDir(rulesDir); readDirErr == nil {
 			for _, entry := range entries {
-				if !entry.IsDir() {
+				if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+					continue
+				}
+				filePath := filepath.Join(rulesDir, entry.Name())
+				data, readErr := os.ReadFile(filePath)
+				if readErr != nil {
+					continue
+				}
+
+				id := strings.TrimSuffix(entry.Name(), ".md")
+				var fm AntigravityRuleFrontmatter
+				body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)
+
+				doc := ir.NewDocument("rule-"+id, ir.TypeRule, formatTitle(id))
+				doc.Metadata.Description = fm.Description
+				if fm.AlwaysApply {
+					doc.Activation.Mode = ir.ModeAlwaysOn
+				} else if len(fm.Globs) > 0 {
+					doc.Activation.Mode = ir.ModeGlob
+					doc.Activation.Globs = fm.Globs
+				} else {
+					doc.Activation.Mode = ir.ModeGlob
+					doc.Activation.Globs = inferGlobFromID(id)
+				}
+				doc.Payload.MarkdownBody = body
+				doc.Payload.RawSource = filePath
+				docs = append(docs, doc)
+			}
+		}
+	}
+
+	// 3. Parse workflows/ (*.md)
+	if workflowsDir := findSubDir("workflows"); workflowsDir != "" {
+		if entries, readDirErr := os.ReadDir(workflowsDir); readDirErr == nil {
+			for _, entry := range entries {
+				if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".md") {
+					continue
+				}
+				filePath := filepath.Join(workflowsDir, entry.Name())
+				data, readErr := os.ReadFile(filePath)
+				if readErr != nil {
+					continue
+				}
+
+				id := strings.TrimSuffix(entry.Name(), ".md")
+				fmData, body, _ := SplitFrontmatter(string(data))
+
+				doc := ir.NewDocument("workflow-"+id, ir.TypeWorkflow, formatTitle(id))
+				if desc, ok := fmData["description"].(string); ok {
+					doc.Metadata.Description = desc
+				}
+				doc.Activation.Mode = ir.ModeOnDemand
+				doc.Activation.SlashCommand = id
+				doc.Payload.MarkdownBody = body
+				doc.Payload.RawSource = filePath
+				docs = append(docs, doc)
+			}
+		}
+	}
+
+	// 4. Parse skills/
+	var skillsDirs []string
+	if s := findSubDir("skills"); s != "" {
+		skillsDirs = append(skillsDirs, s)
+	}
+	if agentSkills := filepath.Join(baseDir, ".agent", "skills"); func() bool {
+		fi, err := os.Stat(agentSkills)
+		return err == nil && fi.IsDir()
+	}() {
+		skillsDirs = append(skillsDirs, agentSkills)
+	}
+
+	seenSkills := map[string]bool{}
+	for _, sDir := range skillsDirs {
+		if entries, readDirErr := os.ReadDir(sDir); readDirErr == nil {
+			for _, entry := range entries {
+				if !entry.IsDir() || seenSkills[entry.Name()] {
 					continue
 				}
 				skillFile := filepath.Join(sDir, entry.Name(), "SKILL.md")
-				data, err := os.ReadFile(skillFile)
-				if err != nil {
+				data, readErr := os.ReadFile(skillFile)
+				if readErr != nil {
 					continue
 				}
+				seenSkills[entry.Name()] = true
 
 				var fm AntigravitySkillFrontmatter
 				body, _ := ExtractFrontmatterAndUnmarshal(string(data), &fm)

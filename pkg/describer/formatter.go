@@ -55,19 +55,19 @@ func formatCLITable(report *MappingReport) string {
 		return sb.String()
 	}
 
-	headers := []string{"Source File", "Type", "Target File", "Est. Tokens", "Action"}
-	colWidths := []int{24, 10, 26, 12, 26}
+	headers := []string{"Source File", "Target File", "Trigger / Activation", "Est. Tokens"}
+	colWidths := []int{28, 30, 24, 12}
 
 	// Calculate dynamic widths based on content (capped for terminal readability)
 	for _, item := range report.Items {
 		if len(item.SourcePath) > colWidths[0] {
-			colWidths[0] = min(len(item.SourcePath), 34)
+			colWidths[0] = min(len(item.SourcePath), 36)
 		}
-		if len(string(item.SourceType)) > colWidths[1] {
-			colWidths[1] = min(len(string(item.SourceType)), 12)
+		if len(item.TargetPath) > colWidths[1] {
+			colWidths[1] = min(len(item.TargetPath), 38)
 		}
-		if len(item.TargetPath) > colWidths[2] {
-			colWidths[2] = min(len(item.TargetPath), 36)
+		if len(item.TargetTrigger) > colWidths[2] {
+			colWidths[2] = min(len(item.TargetTrigger), 28)
 		}
 		tokStr := fmt.Sprintf("~%d tok", item.Tokens)
 		if item.IsOversized {
@@ -75,9 +75,6 @@ func formatCLITable(report *MappingReport) string {
 		}
 		if len(tokStr) > colWidths[3] {
 			colWidths[3] = len(tokStr)
-		}
-		if len(item.Action) > colWidths[4] {
-			colWidths[4] = min(len(item.Action), 34)
 		}
 	}
 
@@ -99,10 +96,9 @@ func formatCLITable(report *MappingReport) string {
 		}
 		row := []string{
 			truncateString(item.SourcePath, colWidths[0]),
-			string(item.SourceType),
-			truncateString(item.TargetPath, colWidths[2]),
+			truncateString(item.TargetPath, colWidths[1]),
+			truncateString(item.TargetTrigger, colWidths[2]),
 			tokStr,
-			truncateString(item.Action, colWidths[4]),
 		}
 		sb.WriteString(buildRow(row, colWidths))
 		sb.WriteByte('\n')
@@ -127,6 +123,15 @@ func formatCLITable(report *MappingReport) string {
 		}
 	}
 
+	// Classification guide explaining each entity type in common terminology
+	sb.WriteString("\n📖 Classification Guide:\n")
+	sb.WriteString("   • Instruction : Baseline project-wide guidelines loaded on session start\n")
+	sb.WriteString("   • Rule        : Scoped coding constraints applied automatically when editing matching files\n")
+	sb.WriteString("   • Prompt      : Reusable instruction templates executed via /<name> slash commands\n")
+	sb.WriteString("   • Workflow    : Multi-step agentic execution procedures and verification loops\n")
+	sb.WriteString("   • Skill       : Specialized knowledge manuals and toolkits loaded dynamically (JIT)\n")
+	sb.WriteString("   • Agent       : Dedicated sub-agent personas with custom roles and tool bindings\n")
+
 	// Notes & Next Steps
 	sb.WriteString("\n💡 Note: Estimated token counts (~Tokens) are calculated locally without external API calls or cost, indicating baseline prompt context overhead per conversation turn.\n\n")
 	sb.WriteString(fmt.Sprintf("👉 Next Step:\n   Run 'parkour convert --from %s --to %s' to execute this transformation.\n", report.FromPlatform, report.ToPlatform))
@@ -142,22 +147,30 @@ func formatMarkdownTable(report *MappingReport) string {
 	sb.WriteString(fmt.Sprintf("- **Target Platform**: `%s` (`%s`)\n", report.ToPlatform, report.OutputDir))
 	sb.WriteString(fmt.Sprintf("- **Detected Documents**: %d\n\n", report.TotalSourceFiles))
 
-	sb.WriteString("| Source File | Entity Type | Target File | Est. Tokens | Action |\n")
-	sb.WriteString("| :--- | :--- | :--- | :--- | :--- |\n")
+	sb.WriteString("| Source File | Target File | Trigger / Activation | Est. Tokens |\n")
+	sb.WriteString("| :--- | :--- | :--- | :--- |\n")
 
 	for _, item := range report.Items {
 		tokStr := fmt.Sprintf("~%d tokens", item.Tokens)
 		if item.IsOversized {
 			tokStr += " ⚠️ `[OVERSIZED]`"
 		}
-		sb.WriteString(fmt.Sprintf("| `%s` | **%s** | `%s` | %s | %s |\n",
-			item.SourcePath, item.SourceType, item.TargetPath, tokStr, item.Action))
+		sb.WriteString(fmt.Sprintf("| `%s` | `%s` | `%s` | %s |\n",
+			item.SourcePath, item.TargetPath, item.TargetTrigger, tokStr))
 	}
 
 	sb.WriteString("\n#### 📊 Context Window & Token Summary\n\n")
 	sb.WriteString(fmt.Sprintf("- **Total Context Size**: ~%d tokens (%d characters)\n", report.TotalTokens, report.TotalCharacters))
 	sb.WriteString(fmt.Sprintf("- **Always-On Tokens**: ~%d tokens\n", report.AlwaysOnTokens))
 	sb.WriteString(fmt.Sprintf("- **On-Demand Tokens**: ~%d tokens\n", report.OnDemandTokens))
+
+	sb.WriteString("\n#### 📖 Classification Guide\n\n")
+	sb.WriteString("- **Instruction**: Baseline project-wide guidelines loaded on session start\n")
+	sb.WriteString("- **Rule**: Scoped coding constraints applied automatically when editing matching files\n")
+	sb.WriteString("- **Prompt**: Reusable instruction templates executed via /<name> slash commands\n")
+	sb.WriteString("- **Workflow**: Multi-step agentic execution procedures and verification loops\n")
+	sb.WriteString("- **Skill**: Specialized knowledge manuals and toolkits loaded dynamically (JIT)\n")
+	sb.WriteString("- **Agent**: Dedicated sub-agent personas with custom roles and tool bindings\n")
 
 	sb.WriteString("\n> [!NOTE]\n")
 	sb.WriteString("> Estimated token counts (~Tokens) are calculated locally without external API calls or cost, indicating baseline prompt context overhead per conversation turn.\n")

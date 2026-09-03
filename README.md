@@ -2,8 +2,7 @@
 
 **[English](README.md)** | [한국어](README_KO.md)
 
-> **"Hit a token wall? Just Parkour across your AI coding agents!"** 🏃💨  
-> *"토큰 장벽에 부딪히셨나요? 가볍게 파쿠르 하듯 에이전트를 뛰어넘으세요!"*
+> **"Hit a token wall? Just Parkour across your AI coding agents!"** 🏃💨
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](go.mod)
@@ -35,6 +34,38 @@ No more manual copy-pasting and reformatting rules when you hit token limits, us
 
 5. 🔄 **1-Second Multi-Agent Migration (`parkour convert`)**  
    Instantly convert legacy GitHub Copilot setups (`.github/instructions`, `.github/prompts`) into modern Google Antigravity workflows and rules with a single command.
+
+---
+
+## 📊 Cross-Agent Dimensional Mapping Matrix
+
+`agent-parkour` adopts a **Directory-First architecture**, preserving the native directory structure and ergonomics of each platform while performing bidirectional compilation:
+
+| Entity | Role & Behavior | Google Antigravity | GitHub Copilot | Claude Code | Cursor AI |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Instruction** | Global SSOT master guidelines | `AGENTS.md`<br>*(or `.agents/AGENTS.md`)* | `.github/copilot-instructions.md` | `CLAUDE.md`<br>*(Root global)* | `.cursorrules`<br>*(or `base.mdc`)* |
+| **Rule** | Scoped coding standards & constraints | `.agents/rules/*.md`<br>(`globs`) | `.github/instructions/*.md`<br>(`applyTo` string or array) | Subdirectory `CLAUDE.md`<br>(Path-scoped) | `.cursor/rules/*.mdc`<br>(`globs`) |
+| **Prompt** | Reusable `/<name>` prompt templates | `.agents/workflows/*.md` | `.github/prompts/*.prompt.md`<br>(`/<cmd>`) | `.claude/workflows/*.md`<br>(`/<cmd>`) | `.cursor/rules/*.mdc` |
+| **Workflow** | Multi-step agentic execution & verification | `.agents/workflows/*.md`<br>(`/<cmd>`) | `.github/prompts/*.prompt.md` | `.claude/workflows/*.md` | `.cursor/rules/*.mdc` |
+| **Skill** | Dynamic JIT knowledge & tool package | `.agents/skills/<name>/`<br>`SKILL.md` (JIT) | `.github/skills/<name>/`<br>`SKILL.md` (JIT) | `.claude/skills/<name>/`<br>`SKILL.md` (JIT) | `.cursor/rules/*.mdc`<br>(Description-based) |
+| **Agent** | Specialized custom sub-agent persona | `.agents/skills/` (or Agent) | `.github/agents/*.agent.md` | `.claude/agents/` | `.cursor/rules/*.mdc` |
+
+---
+
+### 📖 Classification Guide
+
+When running `parkour describe`, each entity is clearly annotated so readers immediately understand its purpose:
+
+- **Instruction**: Project-wide master guidelines loaded on every conversation turn
+- **Rule**: File/language-scoped coding constraints loaded automatically when editing matching files
+- **Prompt**: Reusable instruction templates executed via `/<name>` slash commands
+- **Workflow**: Multi-step agentic execution procedures and verification loops executed via `/<name>`
+- **Skill**: Specialized knowledge manuals and toolkits loaded dynamically (JIT) when needed
+- **Agent**: Dedicated custom sub-agent personas with custom roles and tool bindings
+
+> 💡 **Context Token Impact**:
+> - **Always-On (Turn-0)**: Fixed overhead injected into every conversation turn
+> - **On-Demand (JIT)**: Dynamically loaded only when matching files or commands are triggered, saving token budget
 
 ---
 
@@ -128,17 +159,6 @@ git clone https://github.com/yunkon-kim/agent-parkour.git
 cd agent-parkour
 make build && make test
 ```
-
----
-
-## 📊 Cross-Agent Dimensional Mapping Matrix
-
-| Entity | UA-IR Normalized Role | Google Antigravity | Cursor AI | GitHub Copilot | Claude Code |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Rule** | File-scoped static constraints | `.agents/rules/*.md`<br>(Glob / Always On) | `.cursor/rules/*.mdc`<br>(`globs: []`, `alwaysApply`) | `.github/instructions/*.md`<br>(`applyTo: glob`) | `./CLAUDE.md`<br>Directory cascade |
-| **Skill** | On-demand JIT dynamic package | `.agents/skills/<name>/`<br>`SKILL.md` (JIT Load) | `.cursor/rules/*.mdc`<br>(Apply Intelligently) | `.github/skills/<name>/`<br>`SKILL.md` | `.claude/skills/<name>/`<br>`SKILL.md` |
-| **Workflow** | Multi-step chained prompt loop | `.agents/workflows/*.md`<br>(`/workflow-name`) | `@rule` chained prompt | `.github/prompts/*.prompt.md`<br>(`/scaffold`) | CLI lifecycle hooks |
-| **Instruction** | Global persona & system guidelines | `AGENTS.md` | `.cursor/rules/base.mdc`<br>(`alwaysApply: true`) | `.github/copilot-instructions.md` | `~/.claude/CLAUDE.md`<br>+ `./CLAUDE.md` |
 
 ---
 

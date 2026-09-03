@@ -97,7 +97,7 @@ func (a *MappingAnalyzer) Analyze(docs []*ir.UADocument, fromPlatform, toPlatfor
 }
 
 func formatTrigger(platform string, doc *ir.UADocument) string {
-	if doc.Activation.Mode == ir.ModeAlwaysOn {
+	if doc.Activation.Mode == ir.ModeAlwaysOn || doc.Metadata.Type == ir.TypeInstruction {
 		return "Always-On"
 	}
 	if len(doc.Activation.Globs) > 0 {
@@ -111,7 +111,10 @@ func formatTrigger(platform string, doc *ir.UADocument) string {
 		}
 	}
 	if doc.Activation.SlashCommand != "" {
-		return fmt.Sprintf("/%s", doc.Activation.SlashCommand)
+		return fmt.Sprintf("/%s (Slash Command)", doc.Activation.SlashCommand)
+	}
+	if doc.Metadata.Type == ir.TypeWorkflow || doc.Metadata.Type == ir.TypePrompt {
+		return "On-Demand (Slash Command)"
 	}
 	if doc.Activation.Mode == ir.ModeOnDemand {
 		return "On-Demand (JIT)"
@@ -119,7 +122,10 @@ func formatTrigger(platform string, doc *ir.UADocument) string {
 	if doc.Activation.Mode == ir.ModeModelDecision {
 		return "Model Decision"
 	}
-	return "Always-On"
+	if doc.Metadata.Type == ir.TypeRule {
+		return "Contextual (Rule)"
+	}
+	return "On-Demand"
 }
 
 func resolveTargetMapping(targetPlatform string, doc *ir.UADocument, outputDir string) (targetPath string, targetType ir.EntityType, targetTrigger string, action string, isAlwaysOn bool) {
@@ -136,14 +142,18 @@ func resolveTargetMapping(targetPlatform string, doc *ir.UADocument, outputDir s
 			isAlwaysOn = true
 		case ir.TypeRule:
 			targetPath = filepath.Join(outputDir, ".agents", "rules", sanitizedID+".md")
-			if len(doc.Activation.Globs) > 0 {
+			if doc.Activation.Mode == ir.ModeAlwaysOn {
+				targetTrigger = "Always-On (alwaysApply: true)"
+				action = "Global Rule with alwaysApply"
+				isAlwaysOn = true
+			} else if len(doc.Activation.Globs) > 0 {
 				targetTrigger = fmt.Sprintf("globs: [%s]", strings.Join(doc.Activation.Globs, ", "))
 				action = "YAML Frontmatter Transpilation"
 				isAlwaysOn = false
 			} else {
-				targetTrigger = "Always-On (alwaysApply: true)"
-				action = "Global Rule with alwaysApply"
-				isAlwaysOn = true
+				targetTrigger = "Contextual Rule"
+				action = "YAML Frontmatter Transpilation"
+				isAlwaysOn = false
 			}
 		case ir.TypeWorkflow, ir.TypePrompt:
 			cmdName := doc.Activation.SlashCommand
@@ -199,26 +209,42 @@ func resolveTargetMapping(targetPlatform string, doc *ir.UADocument, outputDir s
 		case ir.TypeRule:
 			id := strings.TrimPrefix(sanitizedID, "rule-")
 			targetPath = filepath.Join(outputDir, ".github", "instructions", id+".instructions.md")
-			if len(doc.Activation.Globs) > 0 {
+			if doc.Activation.Mode == ir.ModeAlwaysOn {
+				targetTrigger = "Always-On"
+				action = "Transpile to Copilot Rule"
+				isAlwaysOn = true
+			} else if len(doc.Activation.Globs) > 0 {
 				targetTrigger = fmt.Sprintf("applyTo: \"%s\"", doc.Activation.Globs[0])
+				action = "Transpile to Copilot Instruction"
+				isAlwaysOn = false
 			} else {
-				targetTrigger = "applyTo: \"**/*\""
+				targetTrigger = fmt.Sprintf("applyTo: \"%s/**\"", id)
+				action = "Transpile to Copilot Instruction"
+				isAlwaysOn = false
 			}
-			action = "Transpile to Copilot Instruction"
-			isAlwaysOn = false
 		case ir.TypeWorkflow, ir.TypePrompt:
 			id := strings.TrimPrefix(sanitizedID, "workflow-")
 			id = strings.TrimPrefix(id, "prompt-")
 			targetPath = filepath.Join(outputDir, ".github", "prompts", id+".prompt.md")
-			targetTrigger = fmt.Sprintf("/%s Prompt Command", id)
+			targetTrigger = fmt.Sprintf("/%s (Prompt Command)", id)
 			action = "Transpile to Copilot Prompt Template"
+			targetType = ir.TypePrompt
 			isAlwaysOn = false
-		case ir.TypeSkill, ir.TypeAgent:
+		case ir.TypeSkill:
+			skillName := strings.TrimPrefix(sanitizedID, "skill-")
+			skillName = strings.TrimPrefix(skillName, "agent-")
+			targetPath = filepath.Join(outputDir, ".github", "skills", skillName, "SKILL.md")
+			targetTrigger = "JIT On-Demand (Agent Skill)"
+			action = "Convert to Copilot Skill Package"
+			targetType = ir.TypeSkill
+			isAlwaysOn = false
+		case ir.TypeAgent:
 			id := strings.TrimPrefix(sanitizedID, "skill-")
 			id = strings.TrimPrefix(id, "agent-")
 			targetPath = filepath.Join(outputDir, ".github", "agents", id+".agent.md")
 			targetTrigger = "Custom Agent Mode"
 			action = "Compile to Copilot Agent Definition"
+			targetType = ir.TypeAgent
 			isAlwaysOn = false
 		default:
 			targetPath = filepath.Join(outputDir, ".github", "instructions", sanitizedID+".instructions.md")
@@ -229,17 +255,28 @@ func resolveTargetMapping(targetPlatform string, doc *ir.UADocument, outputDir s
 
 	case "claude":
 		switch doc.Metadata.Type {
-		case ir.TypeInstruction, ir.TypeRule:
+		case ir.TypeInstruction:
 			targetPath = filepath.Join(outputDir, "CLAUDE.md")
 			targetTrigger = "Always-On"
-			action = "Append to CLAUDE.md Guidelines"
+			action = "Append to CLAUDE.md SSOT"
 			isAlwaysOn = true
+		case ir.TypeRule:
+			targetPath = filepath.Join(outputDir, "CLAUDE.md")
+			if doc.Activation.Mode == ir.ModeAlwaysOn {
+				targetTrigger = "Always-On"
+				isAlwaysOn = true
+			} else {
+				targetTrigger = "Directory Scope"
+				isAlwaysOn = false
+			}
+			action = "Append to CLAUDE.md Guidelines"
 		case ir.TypeSkill, ir.TypeAgent:
 			skillName := strings.TrimPrefix(sanitizedID, "skill-")
 			skillName = strings.TrimPrefix(skillName, "agent-")
 			targetPath = filepath.Join(outputDir, ".claude", "skills", skillName, "SKILL.md")
 			targetTrigger = "On-Demand Skill Invocation"
 			action = "Convert to Claude Skill Package"
+			targetType = ir.TypeSkill
 			isAlwaysOn = false
 		case ir.TypeWorkflow, ir.TypePrompt:
 			cmdName := strings.TrimPrefix(sanitizedID, "workflow-")
@@ -247,6 +284,7 @@ func resolveTargetMapping(targetPlatform string, doc *ir.UADocument, outputDir s
 			targetPath = filepath.Join(outputDir, ".claude", "workflows", cmdName+".md")
 			targetTrigger = "CLI Workflow Step"
 			action = "Convert to Claude Workflow Step"
+			targetType = ir.TypeWorkflow
 			isAlwaysOn = false
 		default:
 			targetPath = filepath.Join(outputDir, "CLAUDE.md")

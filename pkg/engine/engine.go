@@ -167,7 +167,7 @@ func (e *Engine) AutoDetectSource(root string) (string, string) {
 func (e *Engine) AutoDetectTargets(sourceFormat, targetArg string) []string {
 	targetArg = strings.TrimSpace(targetArg)
 	if targetArg == "all" {
-		return []string{"antigravity", "cursor", "copilot"}
+		return []string{"antigravity", "copilot", "cursor"}
 	}
 	if targetArg != "" && targetArg != "auto" {
 		var list []string
@@ -180,16 +180,18 @@ func (e *Engine) AutoDetectTargets(sourceFormat, targetArg string) []string {
 		return list
 	}
 
-	// Default: convert to other platforms
+	// Default: convert to other platforms (Cursor placed last)
 	switch strings.ToLower(sourceFormat) {
+	case "antigravity", "gemini":
+		return []string{"copilot", "cursor"}
 	case "copilot", "github":
 		return []string{"antigravity", "cursor"}
-	case "antigravity", "gemini":
-		return []string{"cursor", "copilot"}
+	case "claude":
+		return []string{"antigravity", "copilot", "cursor"}
 	case "cursor":
 		return []string{"antigravity", "copilot"}
 	default:
-		return []string{"antigravity", "cursor"}
+		return []string{"antigravity", "copilot", "cursor"}
 	}
 }
 

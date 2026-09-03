@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	version = "v0.0.5"
+	version = "v0.0.6"
 )
 
 func main() {
@@ -90,17 +90,17 @@ Hit a token wall? Vault across your AI coding agents in under 10ms! 🏃💨`,
 
 			if !cmd.Flags().Changed("from") || fromFormat == "auto" {
 				fromFormat = detectedFrom
-			}
-			if !cmd.Flags().Changed("input") {
-				// If user explicitly specified --from, resolve standard folder if present
-				if fromFormat == "copilot" && checkPath == "." {
-					if _, err := os.Stat(".github"); err == nil {
-						inputPath = ".github"
+				inputPath = detectedInput
+			} else {
+				fromFormat = strings.ToLower(fromFormat)
+				if fromFormat == "copilot" || fromFormat == "github" {
+					if _, err := os.Stat(filepath.Join(checkPath, ".github")); err == nil {
+						inputPath = filepath.Join(checkPath, ".github")
 					} else {
-						inputPath = detectedInput
+						inputPath = checkPath
 					}
 				} else {
-					inputPath = detectedInput
+					inputPath = checkPath
 				}
 			}
 
@@ -239,8 +239,8 @@ Hit a token wall? Vault across your AI coding agents in under 10ms! 🏃💨`,
 			return nil
 		},
 	}
-	convertCmd.Flags().StringVarP(&fromFormat, "from", "f", "auto", "Source agent format (copilot, cursor, antigravity)")
-	convertCmd.Flags().StringVarP(&toFormat, "to", "t", "", "Target agent format (antigravity, cursor, copilot, or 'all')")
+	convertCmd.Flags().StringVarP(&fromFormat, "from", "f", "auto", "Source agent format (antigravity, copilot, cursor)")
+	convertCmd.Flags().StringVarP(&toFormat, "to", "t", "", "Target agent format (antigravity, copilot, cursor, or 'all')")
 	convertCmd.Flags().StringVarP(&inputPath, "input", "i", ".", "Path to source directory or file (auto-detected if omitted)")
 	convertCmd.Flags().StringVarP(&outputPath, "output", "o", ".", "Output directory for target files")
 	convertCmd.Flags().BoolVar(&useAI, "ai", false, "Enable Generative AI augmentation")
@@ -337,16 +337,17 @@ Hit a token wall? Vault across your AI coding agents in under 10ms! 🏃💨`,
 
 			if !cmd.Flags().Changed("from") || descFrom == "auto" {
 				descFrom = detectedFrom
-			}
-			if !cmd.Flags().Changed("input") {
-				if descFrom == "copilot" && checkPath == "." {
-					if _, err := os.Stat(".github"); err == nil {
-						descInput = ".github"
+				descInput = detectedInput
+			} else {
+				descFrom = strings.ToLower(descFrom)
+				if descFrom == "copilot" || descFrom == "github" {
+					if _, err := os.Stat(filepath.Join(checkPath, ".github")); err == nil {
+						descInput = filepath.Join(checkPath, ".github")
 					} else {
-						descInput = detectedInput
+						descInput = checkPath
 					}
 				} else {
-					descInput = detectedInput
+					descInput = checkPath
 				}
 			}
 
@@ -382,8 +383,8 @@ Hit a token wall? Vault across your AI coding agents in under 10ms! 🏃💨`,
 			return nil
 		},
 	}
-	describeCmd.Flags().StringVarP(&descFrom, "from", "f", "auto", "Source agent format (copilot, cursor, antigravity, claude)")
-	describeCmd.Flags().StringVarP(&descTo, "to", "t", "auto", "Target agent format (antigravity, cursor, copilot, claude, or 'all')")
+	describeCmd.Flags().StringVarP(&descFrom, "from", "f", "auto", "Source agent format (antigravity, copilot, claude, cursor)")
+	describeCmd.Flags().StringVarP(&descTo, "to", "t", "auto", "Target agent format (antigravity, copilot, claude, cursor, or 'all')")
 	describeCmd.Flags().StringVarP(&descInput, "input", "i", ".", "Path to source directory or file (auto-detected if omitted)")
 	describeCmd.Flags().StringVarP(&descOutput, "output", "o", ".", "Target output directory")
 	describeCmd.Flags().StringVar(&descFormat, "format", "table", "Output format: table, markdown, json")
