@@ -12,7 +12,6 @@ import (
 	"github.com/yunkon-kim/agent-parkour/pkg/audit"
 	"github.com/yunkon-kim/agent-parkour/pkg/describer"
 	"github.com/yunkon-kim/agent-parkour/pkg/engine"
-	"github.com/yunkon-kim/agent-parkour/pkg/refiner"
 )
 
 var (
@@ -43,7 +42,7 @@ Hit a token wall? Vault across your AI coding agents in under 10ms! 🏃💨`,
 
 	// 2. Convert Command
 	var fromFormat, toFormat, inputPath, outputPath string
-	var useAI, autoDecompose, dryRun, generatePrompt bool
+	var useAI, autoDecompose, dryRun, genRefinePrompt bool
 	var aiProvider, aiModel string
 
 	convertCmd := &cobra.Command{
@@ -55,8 +54,8 @@ Hit a token wall? Vault across your AI coding agents in under 10ms! 🏃💨`,
   # Preview conversion without writing files (dry-run mode)
   parkour convert --from copilot --to antigravity --dry-run
 
-  # Convert and automatically generate target AI refinement prompt (refine-prompt.md)
-  parkour convert --from copilot --to antigravity --generate-prompt
+  # Convert and generate 2nd-stage AI refinement workflow (/refine-context)
+  parkour convert --from copilot --to antigravity --gen-refine-prompt
 
   # Convert from GitHub Copilot to all supported targets (Antigravity, Cursor)
   parkour convert --from copilot --to all
@@ -172,21 +171,21 @@ Hit a token wall? Vault across your AI coding agents in under 10ms! 🏃💨`,
 				fmt.Printf("   ✅ Successfully generated %d files for %s\n", len(writtenFiles), target)
 
 				// 4.1 Generate AI Refinement Prompt if requested
-				if generatePrompt {
+				if genRefinePrompt {
 					refinePrompt, err := eng.GenerateRefinePrompt(fromFormat, target, inputPath, "", 400)
 					if err == nil && refinePrompt != "" {
-						promptFileName := filepath.Join(outputPath, "refine-prompt-"+target+".md")
+						promptFileName := filepath.Join(outputPath, "refine-context-"+target+".md")
 						switch target {
 						case "antigravity":
-							promptFileName = filepath.Join(outputPath, ".agents", "refine-prompt.md")
+							promptFileName = filepath.Join(outputPath, ".agents", "workflows", "refine-context.md")
 						case "cursor":
-							promptFileName = filepath.Join(outputPath, ".cursor", "refine-prompt.md")
+							promptFileName = filepath.Join(outputPath, ".cursor", "rules", "refine-context.mdc")
 						case "copilot":
-							promptFileName = filepath.Join(outputPath, ".github", "refine-prompt.md")
+							promptFileName = filepath.Join(outputPath, ".github", "prompts", "refine-context.prompt.md")
 						}
 						_ = os.MkdirAll(filepath.Dir(promptFileName), 0755)
 						_ = os.WriteFile(promptFileName, []byte(refinePrompt), 0644)
-						fmt.Printf("   📝 Generated target AI refinement prompt -> %s\n", promptFileName)
+						fmt.Printf("   📝 Generated target AI refinement workflow -> %s\n", promptFileName)
 					}
 				}
 			}
@@ -215,26 +214,27 @@ Hit a token wall? Vault across your AI coding agents in under 10ms! 🏃💨`,
 
 			fmt.Printf("\n🎉 Conversion completed! Total %d files generated.\n\n", len(totalFiles))
 
-			// 6. Action Items & Next Steps for the User
+						// 6. Action Items & Next Steps for the User
 			fmt.Println("👉 Next Steps & Action Items:")
-			fmt.Println("   1. Review changes   : Run 'git status' or 'git diff' to review the generated files.")
-
-			for _, target := range targets {
-				switch target {
-				case "antigravity":
-					fmt.Println("   2. Google Antigravity: Open in Antigravity. Rules (.agents/rules/) and slash workflows (.agents/workflows/) are ready.")
-				case "cursor":
-					fmt.Println("   2. Cursor AI        : Open in Cursor. Rules in .cursor/rules/*.mdc are active.")
-				case "copilot":
-					fmt.Println("   2. GitHub Copilot   : Open in VSCode. Instructions in .github/ are active.")
+			if genRefinePrompt {
+				fmt.Println("   1. [Review] ⚠️  MUST REVIEW FIRST: Inspect converted files before refining:")
+				fmt.Println("      git status && git diff")
+				for _, target := range targets {
+					if target == "antigravity" {
+						fmt.Println("   2. [Refine] ONLY AFTER reviewing, run in Google Antigravity chat:")
+						fmt.Println("      👉 /refine-context")
+					} else if target == "cursor" {
+						fmt.Println("   2. [Refine] ONLY AFTER reviewing, apply .cursor/rules/refine-context.mdc")
+					}
 				}
-			}
-
-			if exceededCount > 0 && !autoDecompose {
-				fmt.Printf("   3. Optimize Context : %d oversized rule(s) exceed recommended limit (>400 tokens). Consider '--decompose --ai' for JIT skills.\n", exceededCount)
-				fmt.Println("   4. Commit Changes   : git add . && git commit -m \"docs: sync AI guidelines to " + strings.Join(targets, ", ") + "\"")
+				fmt.Println("   3. [Audit]  Verify token savings: pk audit")
+				fmt.Println("   4. [Commit] Commit changes to repository:")
+				fmt.Println("      git add . && git commit -m \"docs: sync AI context to " + strings.Join(targets, ", ") + "\"")
 			} else {
-				fmt.Println("   3. Commit Changes   : git add . && git commit -m \"docs: sync AI guidelines to " + strings.Join(targets, ", ") + "\"")
+				fmt.Println("   1. [Review] Inspect generated files: git status")
+				fmt.Println("   2. [Audit]  Inspect token usage: pk audit")
+				fmt.Println("   3. [Commit] Commit changes to repository:")
+				fmt.Println("      git add . && git commit -m \"docs: sync AI context to " + strings.Join(targets, ", ") + "\"")
 			}
 			return nil
 		},
@@ -248,8 +248,9 @@ Hit a token wall? Vault across your AI coding agents in under 10ms! 🏃💨`,
 	convertCmd.Flags().StringVar(&aiProvider, "provider", "gemini", "AI provider (gemini, claude, openai, ollama, mock)")
 	convertCmd.Flags().StringVar(&aiModel, "model", "", "AI model override")
 	convertCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Preview mapping plan in table format without writing files")
-	convertCmd.Flags().BoolVar(&generatePrompt, "generate-prompt", false, "Generate target-specific AI refinement prompt (refine-prompt.md) after conversion")
-	convertCmd.Flags().BoolVar(&generatePrompt, "prompt", false, "Alias for --generate-prompt")
+	convertCmd.Flags().BoolVarP(&genRefinePrompt, "gen-refine-prompt", "r", false, "Generate '/refine-context' workflow for 2nd-stage AI context optimization")
+	convertCmd.Flags().BoolVar(&genRefinePrompt, "generate-prompt", false, "Alias for --gen-refine-prompt (deprecated)")
+	convertCmd.Flags().BoolVar(&genRefinePrompt, "prompt", false, "Alias for --gen-refine-prompt (deprecated)")
 	rootCmd.AddCommand(convertCmd)
 
 	// 3. Describe Command
@@ -390,91 +391,6 @@ Hit a token wall? Vault across your AI coding agents in under 10ms! 🏃💨`,
 	describeCmd.Flags().BoolVar(&descSpec, "spec", false, "Display standard specification matrix between platforms")
 	describeCmd.Flags().IntVarP(&descMaxTokens, "max-tokens", "m", 400, "Maximum recommended token limit per rule")
 	rootCmd.AddCommand(describeCmd)
-
-	// 4. Prompt Command (Target-Specific AI Refinement Prompt Generator)
-	var promptTo, promptFrom, promptFile, promptDir, promptOut, promptGuidance string
-	var promptMaxTokens int
-
-	promptCmd := &cobra.Command{
-		Use:   "prompt",
-		Short: "Generate target-specific AI refinement prompts for semantic 2nd-stage optimization",
-		Example: `  # Generate refinement prompt for a converted Antigravity workflow
-  parkour prompt --to antigravity --file .agents/workflows/git-commit.md
-
-  # Generate refinement prompt for all files in directory and export to file
-  parkour prompt --to antigravity --dir .agents/ --out .agents/refine-prompt.md
-  parkour prompt --to cursor --dir .cursor/rules/ --out .cursor/refine-prompt.md
-
-  # Output target AI optimization guideline template to console
-  parkour prompt --to claude
-  parkour prompt --to antigravity`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			eng := engine.NewEngine(nil)
-
-			// 1. Resolve target platform
-			toPlatform := promptTo
-			if toPlatform == "" || toPlatform == "auto" {
-				srcFormat, _ := eng.AutoDetectSource(".")
-				targets := eng.AutoDetectTargets(srcFormat, "")
-				if len(targets) > 0 {
-					toPlatform = targets[0]
-				} else {
-					toPlatform = "antigravity"
-				}
-			}
-
-			gen := refiner.NewGenerator(promptMaxTokens)
-			var promptContent string
-			var err error
-
-			if promptFile != "" {
-				promptContent, err = gen.GenerateFromFile(toPlatform, promptFile, promptGuidance)
-				if err != nil {
-					return fmt.Errorf("failed to generate prompt from file %s: %w", promptFile, err)
-				}
-			} else if promptDir != "" {
-				promptContent, err = gen.GenerateFromDirectory(toPlatform, promptDir, promptGuidance)
-				if err != nil {
-					return fmt.Errorf("failed to generate prompt from directory %s: %w", promptDir, err)
-				}
-			} else {
-				srcFormat := promptFrom
-				checkPath := "."
-				if srcFormat == "" || srcFormat == "auto" {
-					srcFormat, checkPath = eng.AutoDetectSource(checkPath)
-				}
-				docs, parseErr := eng.ParseSource(srcFormat, checkPath)
-				if parseErr == nil && len(docs) > 0 {
-					promptContent, err = gen.GenerateFromDocs(toPlatform, docs, promptGuidance)
-				} else {
-					promptContent, err = gen.GenerateFromDocs(toPlatform, nil, promptGuidance)
-				}
-				if err != nil {
-					return fmt.Errorf("failed to generate prompt: %w", err)
-				}
-			}
-
-			if promptOut != "" {
-				_ = os.MkdirAll(filepath.Dir(promptOut), 0755)
-				if err := os.WriteFile(promptOut, []byte(promptContent), 0644); err != nil {
-					return fmt.Errorf("failed to write prompt to %s: %w", promptOut, err)
-				}
-				fmt.Printf("📝 Refinement prompt successfully saved to: %s\n", promptOut)
-				return nil
-			}
-
-			fmt.Print(promptContent)
-			return nil
-		},
-	}
-	promptCmd.Flags().StringVarP(&promptTo, "to", "t", "antigravity", "Target AI platform (antigravity, cursor, claude, copilot)")
-	promptCmd.Flags().StringVarP(&promptFrom, "from", "f", "auto", "Source format if auto-parsing repo")
-	promptCmd.Flags().StringVar(&promptFile, "file", "", "Target file to generate refinement prompt for")
-	promptCmd.Flags().StringVar(&promptDir, "dir", "", "Directory containing files to include in prompt")
-	promptCmd.Flags().StringVarP(&promptOut, "out", "o", "", "File path to save the generated prompt")
-	promptCmd.Flags().StringVarP(&promptGuidance, "guidance", "g", "", "Custom project-specific instructions to append to prompt")
-	promptCmd.Flags().IntVarP(&promptMaxTokens, "max-tokens", "m", 400, "Recommended token limit threshold")
-	rootCmd.AddCommand(promptCmd)
 
 	// 5. Audit Command
 	var auditDir string

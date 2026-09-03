@@ -5,7 +5,15 @@ import (
 	"text/template"
 )
 
-const antigravityTemplate = `# [Prompt] Google Antigravity Configuration Optimizer & Refiner
+const antigravityTemplate = `---
+description: Optimize and refine converted rules and workflows to strictly adhere to Antigravity architectural guidelines.
+---
+
+# Google Antigravity Configuration Optimizer & Refiner (/refine-context)
+
+> [!IMPORTANT]
+> **Review Required Before Execution**:
+> Always inspect the converted files (e.g., git status, git diff) and verify changes before applying AI optimization.
 
 You are an expert Google Antigravity agent configuration optimizer.
 Please refactor the converted file(s) below to strictly adhere to Google Antigravity's native architecture, UI limits, and cognitive model.
@@ -64,6 +72,16 @@ For each target file above, produce a complete drop-in replacement markdown file
 2. Follow with the refined content body ($\le 12,000$ chars, target $< 3,500$ chars for workflows, $< 1,800$ chars for rules).
 3. Ensure ` + "`" + `// turbo` + "`" + ` annotations are present before terminal commands.
 4. Output the result in a clean markdown code block ready for one-click copy & paste.
+5. At the conclusion of your response, provide the user with a concise Next Steps checklist:
+   - [Review] Check diff with git diff .agents/
+   - [Verify] Audit token reduction with pk audit -i .agents/
+   - [Clean]  Remove temporary workflow: rm .agents/workflows/refine-context.md
+   - [Commit] Commit changes to repository
+
+> [!TIP]
+> After applying optimizations, you can safely remove this temporary workflow:
+> // turbo
+> rm .agents/workflows/refine-context.md
 `
 
 const cursorTemplate = `# [Prompt] Cursor AI MDC Rule Optimizer & Refiner

@@ -5,9 +5,9 @@
 > **"토큰 장벽에 부딪히셨나요? 가볍게 파쿠르 하듯 에이전트를 뛰어넘으세요!"** 🏃💨  
 > *"Hit a token wall? Just Parkour across your AI coding agents!"*
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](file:///home/ubuntu/dev/yunkon-kim/token-hop/LICENSE)
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](file:///home/ubuntu/dev/yunkon-kim/token-hop/go.mod)
-[![Architecture: UA-IR](https://img.shields.io/badge/Architecture-UA--IR%20v1.0-brightgreen)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/design/agent-parkour-design-plan.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](go.mod)
+[![Architecture: UA-IR](https://img.shields.io/badge/Architecture-UA--IR%20v1.0-brightgreen)](docs/design/agent-parkour-design-plan.md)
 
 > ⚡ **완전 무료 & 로컬 동작**: `agent-parkour`는 기본적으로 **API 키 없이 100% 로컬에서 무료**로 동작합니다. 생성형 AI 연동은 고급 규칙 분할을 위한 순수 **선택적·실험적(Optional & Experimental)** 기능입니다.
 
@@ -73,8 +73,9 @@ parkour describe --from copilot --to antigravity --spec
 # 4) GitHub Copilot 설정을 Google Antigravity로 자동 대응 변환 (알아서 모든 파일 매핑)
 parkour convert --from copilot --to antigravity
 
-# 5) 변환 완료와 동시에 타겟 맞춤형 2차 AI 정제 프롬프트(refine-prompt.md) 자동 생성
-parkour convert --from copilot --to antigravity --generate-prompt
+# 5) 변환과 동시에 IDE용 2차 AI 정제 워크플로우(/refine-context) 자동 생성
+parkour convert --from copilot --to antigravity --gen-refine-prompt
+# ⚠️ 주의: AI 정제를 실행하기 전에 반드시 변환된 내용(`git diff`)을 먼저 검토(Review)하세요!
 
 # 6) 파일 쓰기 없이 변환 결과를 시뮬레이션 (Dry-Run 모드)
 parkour convert --from copilot --to antigravity --dry-run
@@ -85,15 +86,10 @@ parkour convert --from copilot --to all
 # 8) 특정 AI 타겟으로 변환 (소스는 현재 레포에서 자동 감지)
 parkour convert --to cursor
 
-# 9) 타겟 맞춤형 2차 AI 정제 프롬프트 생성 (Antigravity // turbo, Cursor @rule 등 반영)
-parkour prompt --to antigravity --file .agents/workflows/git-commit.md
-parkour prompt --to antigravity --dir .agents/ --out .agents/refine-prompt.md
-parkour prompt --to cursor --out .cursor/refine-prompt.md
-
-# 10) 프로젝트 내 모든 규칙의 토큰 수 및 컨텍스트 한도 정밀 감사
+# 9) 프로젝트 내 모든 규칙의 토큰 수 및 컨텍스트 한도 정밀 감사
 parkour audit
 
-# 11) 신규 프로젝트에 SSOT 템플릿(AGENTS.md & parkour.yaml) 초기화
+# 10) 신규 프로젝트에 SSOT 템플릿(AGENTS.md & parkour.yaml) 초기화
 parkour init
 ```
 
@@ -148,13 +144,13 @@ make build && make test
 
 ## 📚 상세 문서 (Documentation)
 
-- [전체 문서 목차 (docs/README.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/README.md)
-- [시스템 아키텍처 및 구현 계획 명세서 (docs/design/agent-parkour-design-plan.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/design/agent-parkour-design-plan.md)
-- [스펙 최신화 및 프롬프트 가이드 (docs/maintenance/SPEC_EVOLUTION_PROMPT.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/maintenance/SPEC_EVOLUTION_PROMPT.md)
-- [테스트 스위트 및 픽스처 안내 (test/README.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/test/README.md)
+- [전체 문서 목차 (docs/README.md)](docs/README.md)
+- [시스템 아키텍처 및 구현 계획 명세서 (docs/design/agent-parkour-design-plan.md)](docs/design/agent-parkour-design-plan.md)
+- [스펙 최신화 및 프롬프트 가이드 (docs/maintenance/SPEC_EVOLUTION_PROMPT.md)](docs/maintenance/SPEC_EVOLUTION_PROMPT.md)
+- [테스트 스위트 및 픽스처 안내 (test/README.md)](test/README.md)
 
 ---
 
 ## 📄 라이선스 (License)
 
-[MIT License](file:///home/ubuntu/dev/yunkon-kim/token-hop/LICENSE) © 2026 Yunkon Kim
+[MIT License](LICENSE) © 2026 Yunkon Kim

@@ -1,4 +1,4 @@
-.PHONY: all build test clean install audit-example
+.PHONY: all build test test-e2e clean install audit-example
 
 BINARY_NAME=agent-parkour
 CLI_NAME=parkour
@@ -20,6 +20,10 @@ build:
 test:
 	@echo "🧪 Running unit & integration tests..."
 	@go test -v ./...
+
+test-e2e:
+	@echo "🏃 Running live E2E AI refinement test with Antigravity CLI (agy)..."
+	@go test -v -tags=e2e -count=1 -timeout 180s ./test -run TestE2E_AntigravityRefinementWithAgy
 
 audit-example: build
 	@echo "📊 Running token audit on cm-beetle fixture..."

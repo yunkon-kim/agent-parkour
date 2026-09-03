@@ -5,9 +5,9 @@
 > **"Hit a token wall? Just Parkour across your AI coding agents!"** 🏃💨  
 > *"토큰 장벽에 부딪히셨나요? 가볍게 파쿠르 하듯 에이전트를 뛰어넘으세요!"*
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](file:///home/ubuntu/dev/yunkon-kim/token-hop/LICENSE)
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](file:///home/ubuntu/dev/yunkon-kim/token-hop/go.mod)
-[![Architecture: UA-IR](https://img.shields.io/badge/Architecture-UA--IR%20v1.0-brightgreen)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/design/agent-parkour-design-plan.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go)](go.mod)
+[![Architecture: UA-IR](https://img.shields.io/badge/Architecture-UA--IR%20v1.0-brightgreen)](docs/design/agent-parkour-design-plan.md)
 
 > ⚡ **Zero-Cost & Local-First**: `agent-parkour` runs 100% locally with **zero API keys and zero cost** by default. Generative AI is purely an optional, experimental feature for advanced rule decomposition.
 
@@ -73,8 +73,9 @@ parkour describe --from copilot --to antigravity --spec
 # 4) Convert from GitHub Copilot to Google Antigravity (auto-maps all rules & prompts)
 parkour convert --from copilot --to antigravity
 
-# 5) Convert and automatically generate target AI refinement prompt (refine-prompt.md)
-parkour convert --from copilot --to antigravity --generate-prompt
+# 5) Convert and generate 2nd-stage AI refinement workflow (/refine-context)
+parkour convert --from copilot --to antigravity --gen-refine-prompt
+# ⚠️ Note: Always review converted files (`git diff`) before triggering /refine-context in chat!
 
 # 6) Convert with dry-run preview (simulates without writing files)
 parkour convert --from copilot --to antigravity --dry-run
@@ -85,15 +86,10 @@ parkour convert --from copilot --to all
 # 8) Convert to a specific target (auto-detects source in repo)
 parkour convert --to cursor
 
-# 9) Generate target-specific AI refinement prompt for semantic 2nd-stage optimization
-parkour prompt --to antigravity --file .agents/workflows/git-commit.md
-parkour prompt --to antigravity --dir .agents/ --out .agents/refine-prompt.md
-parkour prompt --to cursor --out .cursor/refine-prompt.md
-
-# 10) Audit token counts & context limits across all rules
+# 9) Audit token counts & context limits across all rules
 parkour audit
 
-# 11) Initialize a new project with SSOT scaffolding (AGENTS.md & parkour.yaml)
+# 10) Initialize a new project with SSOT scaffolding (AGENTS.md & parkour.yaml)
 parkour init
 ```
 
@@ -148,13 +144,13 @@ make build && make test
 
 ## 📚 Documentation
 
-- [Table of Contents (docs/README.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/README.md)
-- [Architecture & Design Plan Specification (docs/design/agent-parkour-design-plan.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/design/agent-parkour-design-plan.md)
-- [Maintenance & Spec Evolution Prompt (docs/maintenance/SPEC_EVOLUTION_PROMPT.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/docs/maintenance/SPEC_EVOLUTION_PROMPT.md)
-- [Test Suite & Real-world Fixtures Guide (test/README.md)](file:///home/ubuntu/dev/yunkon-kim/token-hop/test/README.md)
+- [Table of Contents (docs/README.md)](docs/README.md)
+- [Architecture & Design Plan Specification (docs/design/agent-parkour-design-plan.md)](docs/design/agent-parkour-design-plan.md)
+- [Maintenance & Spec Evolution Prompt (docs/maintenance/SPEC_EVOLUTION_PROMPT.md)](docs/maintenance/SPEC_EVOLUTION_PROMPT.md)
+- [Test Suite & Real-world Fixtures Guide (test/README.md)](test/README.md)
 
 ---
 
 ## 📄 License
 
-[MIT License](file:///home/ubuntu/dev/yunkon-kim/token-hop/LICENSE) © 2026 Yunkon Kim
+[MIT License](LICENSE) © 2026 Yunkon Kim
